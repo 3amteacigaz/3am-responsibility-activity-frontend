@@ -2,31 +2,15 @@ import { initializeApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 
-// Firebase configuration from environment variables
+// Firebase configuration
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID
+  apiKey: "AIzaSyANSq8O4I26mzNBDrU6MkDuXbDnJFnrnmk",
+  authDomain: "task-activity-management.firebaseapp.com",
+  projectId: "task-activity-management",
+  storageBucket: "task-activity-management.firebasestorage.app",
+  messagingSenderId: "564723178604",
+  appId: "1:564723178604:web:1918cb49ee4dae289a0c49"
 };
-
-// Validate that all required environment variables are present
-const requiredEnvVars = [
-  'VITE_FIREBASE_API_KEY',
-  'VITE_FIREBASE_AUTH_DOMAIN', 
-  'VITE_FIREBASE_PROJECT_ID',
-  'VITE_FIREBASE_STORAGE_BUCKET',
-  'VITE_FIREBASE_MESSAGING_SENDER_ID',
-  'VITE_FIREBASE_APP_ID'
-];
-
-const missingVars = requiredEnvVars.filter(varName => !import.meta.env[varName]);
-
-if (missingVars.length > 0) {
-  throw new Error(`Missing required environment variables: ${missingVars.join(', ')}. Please check your .env file.`);
-}
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
