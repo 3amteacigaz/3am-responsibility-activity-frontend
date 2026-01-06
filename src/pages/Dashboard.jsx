@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import firebaseStorage from '../services/firebaseStorage';
+import { responsibilityAPI } from '../services/api';
 
 const Dashboard = () => {
   const [responsibilities, setResponsibilities] = useState([]);
@@ -28,7 +28,7 @@ const Dashboard = () => {
     if (user) {
       loadResponsibilities();
     } else {
-      setLoading(false); // Stop loading if no user
+      setLoading(false);
     }
   }, [user]);
 
@@ -40,7 +40,8 @@ const Dashboard = () => {
 
     try {
       setLoading(true);
-      const userResponsibilities = await firebaseStorage.getUserTasks(user.userId);
+      const response = await responsibilityAPI.getUserResponsibilities();
+      const userResponsibilities = response.data.tasks || [];
       setResponsibilities(userResponsibilities);
       generateDatesList(userResponsibilities);
     } catch (error) {
@@ -129,13 +130,7 @@ const Dashboard = () => {
     setMessage('');
 
     try {
-      const responsibilityData = {
-        ...formData,
-        userId: user.userId,
-        username: user.username
-      };
-
-      await firebaseStorage.createTask(responsibilityData);
+      await responsibilityAPI.createResponsibility(formData);
       setMessage('Responsibility added successfully!');
       
       // Reset form
@@ -163,7 +158,7 @@ const Dashboard = () => {
 
   const toggleResponsibilityCompletion = async (responsibilityId, completed) => {
     try {
-      await firebaseStorage.updateTaskCompletion(responsibilityId, completed);
+      await responsibilityAPI.updateResponsibility(responsibilityId, { completed });
       await loadResponsibilities();
     } catch (error) {
       console.error('Error updating responsibility:', error);
@@ -173,7 +168,7 @@ const Dashboard = () => {
   const deleteResponsibility = async (responsibilityId) => {
     if (window.confirm('Are you sure you want to delete this responsibility?')) {
       try {
-        await firebaseStorage.deleteTask(responsibilityId);
+        await responsibilityAPI.deleteResponsibility(responsibilityId);
         await loadResponsibilities();
       } catch (error) {
         console.error('Error deleting responsibility:', error);

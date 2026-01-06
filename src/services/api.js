@@ -53,13 +53,15 @@ export const authAPI = {
   logout: () => api.post('/logout'),
 };
 
-// Responsibility API calls
+// Responsibility API calls - NOW USING BACKEND API
 export const responsibilityAPI = {
   createResponsibility: (data) => api.post('/responsibilities', data),
-  getUserResponsibilities: (params) => api.get('/responsibilities', { params }),
-  getAllResponsibilities: (params) => api.get('/responsibilities/all', { params }),
-  getResponsibilityDates: (params) => api.get('/responsibilities/dates', { params }),
-  getResponsibilityStats: (params) => api.get('/responsibilities/stats', { params }),
+  getUserResponsibilities: () => api.get('/responsibilities'),
+  getAllResponsibilities: () => api.get('/responsibilities/all'),
+  getResponsibilityDates: (userId = null) => api.get('/responsibilities/dates', { 
+    params: userId ? { userId } : {} 
+  }),
+  getResponsibilityStats: () => api.get('/responsibilities/stats'),
   updateResponsibility: (id, data) => api.put(`/responsibilities/${id}`, data),
   deleteResponsibility: (id) => api.delete(`/responsibilities/${id}`),
 };

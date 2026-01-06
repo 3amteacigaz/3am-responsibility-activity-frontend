@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import firebaseStorage from '../services/firebaseStorage';
+import { responsibilityAPI } from '../services/api';
 
 const Community = () => {
   const [activeTab, setActiveTab] = useState('responsibilities');
@@ -27,11 +27,12 @@ const Community = () => {
   const loadAllResponsibilities = async () => {
     try {
       setLoading(true);
-      const responsibilities = await firebaseStorage.getAllTasks();
+      const response = await responsibilityAPI.getAllResponsibilities();
+      const responsibilities = response.data.tasks || [];
       setAllResponsibilities(responsibilities);
       generateDatesList(responsibilities);
     } catch (error) {
-      console.error('Error loading responsibilities from Firebase:', error);
+      console.error('Error loading responsibilities from backend:', error);
     } finally {
       setLoading(false);
     }
