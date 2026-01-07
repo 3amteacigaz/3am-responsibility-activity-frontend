@@ -2,38 +2,21 @@
 <html>
   <head>
     <meta charset="utf-8">
-    <title>3AM Core - Redirecting...</title>
+    <title>3AM Core</title>
     <script type="text/javascript">
-      // Simple and reliable GitHub Pages SPA redirect
-      var l = window.location;
+      // Ultra-simple GitHub Pages SPA redirect
+      // Just redirect everything to the main app and let React Router handle it
+      var currentUrl = window.location.href;
+      var baseUrl = 'https://3amteacigaz.github.io/3am-responsibility-activity-frontend/';
       
-      // For URL: https://3amteacigaz.github.io/3am-responsibility-activity-frontend/dashboard
-      // We want to redirect to: https://3amteacigaz.github.io/3am-responsibility-activity-frontend/?/dashboard
+      console.log('404.html - Current URL:', currentUrl);
+      console.log('404.html - Redirecting to base URL:', baseUrl);
       
-      var repoName = '3am-responsibility-activity-frontend';
-      var fullPath = l.pathname;
-      
-      // Find where the repo name ends and the route begins
-      var repoPath = '/' + repoName + '/';
-      var routeStart = fullPath.indexOf(repoPath);
-      
-      if (routeStart !== -1) {
-        // Extract the route part (everything after /repo-name/)
-        var route = fullPath.substring(routeStart + repoPath.length);
-        
-        // Build redirect URL
-        var redirectUrl = l.protocol + '//' + l.hostname + repoPath + '?/' + route + l.search + l.hash;
-        
-        console.log('404 Redirect:', fullPath, '→', redirectUrl);
-        l.replace(redirectUrl);
-      } else {
-        // Fallback: redirect to home
-        console.log('404 Fallback redirect to home');
-        l.replace(l.protocol + '//' + l.hostname + '/' + repoName + '/');
-      }
+      // Always redirect to the base URL - React Router will handle the routing
+      window.location.replace(baseUrl);
     </script>
   </head>
   <body>
-    <p>Redirecting...</p>
+    <p>Redirecting to 3AM Core...</p>
   </body>
 </html>

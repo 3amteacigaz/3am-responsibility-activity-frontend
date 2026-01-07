@@ -12,10 +12,16 @@ import InHouseDashboard from './pages/InHouseDashboard';
 import Community from './pages/Community';
 import Home from './pages/Home';
 
+// Get the base path for GitHub Pages
+const basename = import.meta.env.DEV ? '' : '/3am-responsibility-activity-frontend';
+
 function App() {
+  console.log('App.jsx - Using basename:', basename);
+  console.log('App.jsx - Current location:', window.location.href);
+  
   return (
     <AuthProvider>
-      <Router basename="/3am-responsibility-activity-frontend">
+      <Router basename={basename}>
         <div className="App">
           <Routes>
             {/* Public routes */}

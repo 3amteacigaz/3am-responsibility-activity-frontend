@@ -9,35 +9,12 @@
     
     <!-- Start Single Page Apps for GitHub Pages -->
     <script type="text/javascript">
-      // GitHub Pages SPA redirect handler with debugging
-      (function(l) {
-        console.log('index.html - Current URL:', l.href);
-        console.log('index.html - Search params:', l.search);
-        
-        if (l.search[1] === '/' ) {
-          console.log('index.html - Found redirect parameter');
-          
-          var decoded = l.search.slice(1).split('&').map(function(s) { 
-            return s.replace(/~and~/g, '&')
-          }).join('?');
-          
-          console.log('index.html - Decoded route:', decoded);
-          
-          // For GitHub Pages project sites, we need to preserve the repo name
-          var newUrl = '/3am-responsibility-activity-frontend' + decoded + l.hash;
-          
-          console.log('index.html - Restoring URL to:', newUrl);
-          
-          window.history.replaceState(null, null, newUrl);
-          
-          console.log('index.html - URL restored, React Router should take over');
-        } else {
-          console.log('index.html - No redirect parameter found, normal load');
-        }
-      }(window.location))
+      // Simple redirect handler - not needed with the new approach
+      console.log('index.html - App loading normally');
+      console.log('index.html - Current URL:', window.location.href);
     </script>
     <!-- End Single Page Apps for GitHub Pages -->
-    <script type="module" crossorigin src="/3am-responsibility-activity-frontend/assets/index-DPU0QQh1.js"></script>
+    <script type="module" crossorigin src="/3am-responsibility-activity-frontend/assets/index-CPFnrtGH.js"></script>
     <link rel="stylesheet" crossorigin href="/3am-responsibility-activity-frontend/assets/index-Di5wjGIG.css">
   </head>
   <body>
