@@ -12,8 +12,7 @@ dist-ssr/
 *.local
 
 # Environment variables
-.env
-.env.local
+.env.local          # Local development only - NOT committed to Git
 .env.development.local
 .env.test.local
 .env.production.local

@@ -8,6 +8,8 @@ export default defineConfig({
   server: {
     port: 3002,
     host: true,
+    // Proxy only works when using local backend (/api)
+    // When using remote backend (https://...), proxy is bypassed
     proxy: {
       '/api': {
         target: 'http://localhost:3003',

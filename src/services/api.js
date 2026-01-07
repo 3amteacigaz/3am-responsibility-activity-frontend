@@ -9,6 +9,12 @@ const api = axios.create({
   },
 });
 
+// Debug: Log the environment details
+console.log('🌍 Environment Mode:', import.meta.env.MODE);
+console.log('🔗 API Base URL:', import.meta.env.VITE_API_BASE_URL || '/api');
+console.log('🏗️ Is Development:', import.meta.env.DEV);
+console.log('🚀 Is Production:', import.meta.env.PROD);
+
 // Request interceptor to add auth token if available
 api.interceptors.request.use(
   (config) => {
