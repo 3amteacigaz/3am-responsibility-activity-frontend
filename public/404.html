@@ -2,38 +2,49 @@
 <html>
   <head>
     <meta charset="utf-8">
-    <title>3AM Core</title>
+    <title>3AM Core - Redirecting...</title>
     <script type="text/javascript">
-      // GitHub Pages SPA redirect
-      // Automatically detects the correct base path for GitHub Pages project sites
-      
+      // Simple GitHub Pages SPA redirect for 3am-responsibility-activity-frontend
       var l = window.location;
-      var pathSegments = l.pathname.split('/').filter(function(segment) {
-        return segment.length > 0;
-      });
       
-      // For GitHub Pages project sites (username.github.io/repo-name)
-      // we need to preserve the first segment (repo-name)
-      var basePath = '';
-      var routePath = '';
+      // Debug: Log the current URL
+      console.log('404.html - Current URL:', l.href);
+      console.log('404.html - Pathname:', l.pathname);
       
-      if (pathSegments.length > 0) {
-        // First segment is likely the repo name
-        basePath = '/' + pathSegments[0];
-        // Everything after the first segment is the route
-        routePath = pathSegments.slice(1).join('/');
+      // Extract the route part after the repo name
+      // URL structure: https://3amteacigaz.github.io/3am-responsibility-activity-frontend/ROUTE
+      var pathParts = l.pathname.split('/');
+      console.log('404.html - Path parts:', pathParts);
+      
+      // pathParts[0] = '' (empty)
+      // pathParts[1] = '3am-responsibility-activity-frontend' (repo name)
+      // pathParts[2+] = the actual route (dashboard, community, etc.)
+      
+      var repoName = '3am-responsibility-activity-frontend';
+      var route = '';
+      
+      // Find the repo name in the path and get everything after it
+      var repoIndex = pathParts.indexOf(repoName);
+      if (repoIndex !== -1 && pathParts.length > repoIndex + 1) {
+        route = pathParts.slice(repoIndex + 1).join('/');
       }
       
-      // Redirect to index.html with encoded route
-      var redirectUrl = l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
-        basePath + '/?/' + routePath +
+      console.log('404.html - Extracted route:', route);
+      
+      // Build the redirect URL
+      var redirectUrl = l.protocol + '//' + l.hostname + 
+        '/' + repoName + '/?/' + route +
         (l.search ? '&' + l.search.slice(1).replace(/&/g, '~and~') : '') +
         l.hash;
       
+      console.log('404.html - Redirecting to:', redirectUrl);
+      
+      // Redirect
       l.replace(redirectUrl);
     </script>
   </head>
   <body>
-    <p>Redirecting...</p>
+    <p>Redirecting to app...</p>
+    <p>If you see this page, check the browser console for debug info.</p>
   </body>
 </html>
