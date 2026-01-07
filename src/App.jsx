@@ -15,7 +15,7 @@ import Home from './pages/Home';
 function App() {
   return (
     <AuthProvider>
-      <Router>
+      <Router basename="/3am-responsibility-activity-frontend">
         <div className="App">
           <Routes>
             {/* Public routes */}
