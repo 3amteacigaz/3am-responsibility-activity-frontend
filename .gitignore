@@ -7,7 +7,8 @@ pnpm-debug.log*
 lerna-debug.log*
 
 # Build outputs
-# dist/ - Commented out for GitHub Pages deployment
+dist/                   # Old build folder (not used anymore)
+# docs/ - Production files for GitHub Pages (can be committed)
 dist-ssr/
 *.local
 

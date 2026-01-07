@@ -19,8 +19,8 @@ export default defineConfig({
     },
   },
   build: {
-    outDir: '.', // Build to root instead of dist
+    outDir: 'docs', // Build to docs folder for GitHub Pages
     assetsDir: 'assets',
-    emptyOutDir: false, // Don't delete source files
+    emptyOutDir: true, // Clean docs folder on each build
   },
 })
