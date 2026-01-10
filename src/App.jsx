@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
+import { HashRouter as Router, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 
 // Import components
@@ -15,8 +15,8 @@ import ManageActivities from './pages/ManageActivities';
 import Activities from './pages/Activities';
 import Presence from './pages/Presence';
 
-// Get the base path for GitHub Pages
-const basename = import.meta.env.DEV ? '' : '/3am-responsibility-activity-frontend';
+// Get the base path for GitHub Pages (not needed with HashRouter)
+// const basename = import.meta.env.DEV ? '' : '/3am-responsibility-activity-frontend';
 
 // Component to handle GitHub Pages hash routing
 function GitHubPagesHandler() {
@@ -24,38 +24,22 @@ function GitHubPagesHandler() {
   const location = useLocation();
 
   useEffect(() => {
-    // Only run this in production (GitHub Pages)
-    if (!import.meta.env.DEV) {
-      // Check if we have a hash that represents a route
-      const hash = window.location.hash;
-      if (hash && hash.startsWith('#/')) {
-        const route = hash.substring(1); // Remove the #
-        console.log('GitHub Pages - Detected hash route:', route);
-        console.log('GitHub Pages - Current location:', location.pathname);
-        
-        // Only navigate if we're not already on the correct route
-        if (location.pathname !== route) {
-          console.log('GitHub Pages - Navigating to:', route);
-          navigate(route, { replace: true });
-        }
-        
-        // Clean up the hash from the URL
-        window.history.replaceState(null, '', window.location.pathname + window.location.search);
-      }
-    }
-  }, [navigate, location]);
+    // With HashRouter, routing should work automatically
+    // This component is kept for potential future enhancements
+    console.log('GitHubPagesHandler - Current location:', location.pathname);
+  }, [location]);
 
   return null;
 }
 
 function App() {
-  console.log('App.jsx - Using basename:', basename);
+  console.log('App.jsx - Using HashRouter for GitHub Pages compatibility');
   console.log('App.jsx - Current location:', window.location.href);
   console.log('App.jsx - Environment:', import.meta.env.DEV ? 'development' : 'production');
   
   return (
     <AuthProvider>
-      <Router basename={basename}>
+      <Router>
         <div className="App">
           <GitHubPagesHandler />
           <Routes>
