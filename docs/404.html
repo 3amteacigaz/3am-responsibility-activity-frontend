@@ -4,32 +4,16 @@
     <meta charset="utf-8">
     <title>3AM Core</title>
     <script type="text/javascript">
-      // GitHub Pages SPA redirect - preserve the original path
-      var currentPath = window.location.pathname;
-      var currentSearch = window.location.search;
-      var currentHash = window.location.hash;
-      
-      console.log('404.html - Current path:', currentPath);
-      console.log('404.html - Current search:', currentSearch);
-      console.log('404.html - Current hash:', currentHash);
-      
-      // Build the redirect URL with the original path preserved
+      // Ultra-simple GitHub Pages SPA redirect
+      // Just redirect everything to the main app and let React Router handle it
+      var currentUrl = window.location.href;
       var baseUrl = 'https://3amteacigaz.github.io/3am-responsibility-activity-frontend/';
-      var redirectUrl = baseUrl;
       
-      // If the path is not just the base path, preserve it
-      if (currentPath !== '/3am-responsibility-activity-frontend/' && currentPath !== '/3am-responsibility-activity-frontend') {
-        // Extract the path after the base path
-        var pathAfterBase = currentPath.replace('/3am-responsibility-activity-frontend', '');
-        if (pathAfterBase && pathAfterBase !== '/') {
-          redirectUrl = baseUrl + '#' + pathAfterBase + currentSearch + currentHash;
-        }
-      }
+      console.log('404.html - Current URL:', currentUrl);
+      console.log('404.html - Redirecting to base URL:', baseUrl);
       
-      console.log('404.html - Redirecting to:', redirectUrl);
-      
-      // Redirect to preserve the route for React Router
-      window.location.replace(redirectUrl);
+      // Always redirect to the base URL - React Router will handle the routing
+      window.location.replace(baseUrl);
     </script>
   </head>
   <body>
