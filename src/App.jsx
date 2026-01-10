@@ -1,5 +1,5 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 
 // Import components
@@ -18,14 +18,46 @@ import Presence from './pages/Presence';
 // Get the base path for GitHub Pages
 const basename = import.meta.env.DEV ? '' : '/3am-responsibility-activity-frontend';
 
+// Component to handle GitHub Pages hash routing
+function GitHubPagesHandler() {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    // Only run this in production (GitHub Pages)
+    if (!import.meta.env.DEV) {
+      // Check if we have a hash that represents a route
+      const hash = window.location.hash;
+      if (hash && hash.startsWith('#/')) {
+        const route = hash.substring(1); // Remove the #
+        console.log('GitHub Pages - Detected hash route:', route);
+        console.log('GitHub Pages - Current location:', location.pathname);
+        
+        // Only navigate if we're not already on the correct route
+        if (location.pathname !== route) {
+          console.log('GitHub Pages - Navigating to:', route);
+          navigate(route, { replace: true });
+        }
+        
+        // Clean up the hash from the URL
+        window.history.replaceState(null, '', window.location.pathname + window.location.search);
+      }
+    }
+  }, [navigate, location]);
+
+  return null;
+}
+
 function App() {
   console.log('App.jsx - Using basename:', basename);
   console.log('App.jsx - Current location:', window.location.href);
+  console.log('App.jsx - Environment:', import.meta.env.DEV ? 'development' : 'production');
   
   return (
     <AuthProvider>
       <Router basename={basename}>
         <div className="App">
+          <GitHubPagesHandler />
           <Routes>
             {/* Public routes */}
             <Route path="/" element={<Navigate to="/core-login" replace />} />
