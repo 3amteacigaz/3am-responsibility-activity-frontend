@@ -106,7 +106,16 @@ export const AuthProvider = ({ children }) => {
 
   const firebaseSignup = async (userData) => {
     try {
-      const response = await authAPI.firebaseSignup(userData);
+      console.log('Firebase signup called with:', userData);
+      
+      // Send signup data to backend - Firebase user creation happens on backend
+      const response = await authAPI.firebaseSignup({
+        username: userData.username,
+        email: userData.email,
+        password: userData.password,
+        userType: userData.userType || 'in-house'
+      });
+      
       return { success: true, message: response.data.message };
     } catch (error) {
       console.error('Firebase signup error:', error);
@@ -119,7 +128,15 @@ export const AuthProvider = ({ children }) => {
 
   const firebaseLogin = async (email, password) => {
     try {
-      const response = await authAPI.firebaseLogin({ email, password });
+      console.log('Firebase login called with:', { email });
+      
+      // Send login data to backend - Firebase authentication happens on backend
+      const response = await authAPI.firebaseLogin({ 
+        email, 
+        password,
+        userType: 'in-house'
+      });
+      
       const { user: userData, token } = response.data;
       
       await login(userData, token);
@@ -133,12 +150,26 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const refreshUser = async () => {
+    try {
+      const response = await authAPI.getCurrentUser();
+      const userData = response.data;
+      setUser(userData);
+      setStoredUser(userData);
+      return userData;
+    } catch (error) {
+      console.error('Error refreshing user data:', error);
+      return null;
+    }
+  };
+
   const value = {
     user,
     loading,
     isAuthenticated,
     login,
     logout,
+    refreshUser,
     coreLogin,
     setupCorePassword,
     firebaseSignup,

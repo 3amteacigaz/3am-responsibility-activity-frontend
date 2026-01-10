@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { responsibilityAPI } from '../services/api';
+import MobileNav from '../components/MobileNav';
 
 const Community = () => {
   const [activeTab, setActiveTab] = useState('responsibilities');
@@ -10,8 +11,14 @@ const Community = () => {
   const [datesList, setDatesList] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
+
+  // Helper function to get proper display name
+  const getDisplayName = (userObj) => {
+    if (!userObj) return 'Member';
+    return userObj.name || userObj.username || userObj.email?.split('@')[0] || 'Member';
+  };
 
   // Set page title
   useEffect(() => {
@@ -143,11 +150,18 @@ const Community = () => {
 
   return (
     <div className="container">
-      <div className="dashboard-header">
-        <h1>Community</h1>
+      {/* Mobile Navigation */}
+      <MobileNav user={user} onLogout={handleLogout} />
+      
+      {/* Desktop Header */}
+      <div className="dashboard-header desktop-only">
+        <div className="user-info">{getDisplayName(user)}</div>
         <div className="nav-links">
-          <Link to="/dashboard">Dashboard</Link>
-          <a href="#" onClick={handleLogout}>Exit</a>
+          <Link to="/dashboard" className="nav-link">Dashboard</Link>
+          <Link to="/activities" className="nav-link">Activities</Link>
+          <Link to="/manage-activities" className="nav-link">Manage Activities</Link>
+          <Link to="/community" className="nav-link active">Community</Link>
+          <a href="#" onClick={handleLogout} className="nav-link">Exit</a>
         </div>
       </div>
       
@@ -246,7 +260,7 @@ const Community = () => {
                               marginBottom: '8px' 
                             }}>
                               <div className="task-title">{responsibility.title}</div>
-                              <div className="user-info">{responsibility.username}</div>
+                              <div className="user-info">{responsibility.name || responsibility.username}</div>
                             </div>
                             <div className="task-meta">
                               {new Date(responsibility.date).toLocaleDateString()} at {responsibility.time}

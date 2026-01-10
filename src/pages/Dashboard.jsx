@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { responsibilityAPI } from '../services/api';
+import pushNotificationService from '../services/pushNotifications';
+import MobileNav from '../components/MobileNav';
 
 const Dashboard = () => {
   const [responsibilities, setResponsibilities] = useState([]);
@@ -19,9 +21,48 @@ const Dashboard = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
+  // Automatically request notification permission
+  const requestNotificationPermission = async () => {
+    try {
+      if (pushNotificationService.isNotificationSupported()) {
+        const currentPermission = pushNotificationService.getPermissionStatus();
+        
+        if (currentPermission === 'default') {
+          console.log('🔔 Automatically requesting notification permission...');
+          await pushNotificationService.initialize();
+          const permission = await pushNotificationService.requestPermission();
+          
+          if (permission === 'granted') {
+            const subscription = await pushNotificationService.subscribe();
+            if (subscription) {
+              console.log('✅ Push notifications enabled automatically');
+            }
+          }
+        } else if (currentPermission === 'granted') {
+          await pushNotificationService.initialize();
+          const status = await pushNotificationService.getSubscriptionStatus();
+          if (!status.subscribed) {
+            await pushNotificationService.subscribe();
+          }
+        }
+      }
+    } catch (error) {
+      console.log('🔔 Notification permission request failed (this is normal if user declines):', error.message);
+    }
+  };
+
+  // Helper function to get proper display name
+  const getDisplayName = (userObj) => {
+    if (!userObj) return 'Member';
+    return userObj.name || userObj.username || userObj.email?.split('@')[0] || 'Member';
+  };
+
   // Set page title
   useEffect(() => {
     document.title = 'Dashboard - 3AM Core';
+    
+    // Automatically request notification permission when user visits
+    requestNotificationPermission();
   }, []);
 
   useEffect(() => {
@@ -228,11 +269,18 @@ const Dashboard = () => {
 
   return (
     <div className="container">
-      <div className="dashboard-header">
-        <h1><span id="username">{user?.username || 'Member'}</span></h1>
+      {/* Mobile Navigation */}
+      <MobileNav user={user} onLogout={handleLogout} />
+      
+      {/* Desktop Header */}
+      <div className="dashboard-header desktop-only">
+        <div className="user-info">{getDisplayName(user)}</div>
         <div className="nav-links">
-          <Link to="/community">Community</Link>
-          <a href="#" onClick={handleLogout}>Exit</a>
+          <Link to="/dashboard" className="nav-link active">Dashboard</Link>
+          <Link to="/activities" className="nav-link">Activities</Link>
+          <Link to="/manage-activities" className="nav-link">Manage Activities</Link>
+          <Link to="/community" className="nav-link">Community</Link>
+          <a href="#" onClick={handleLogout} className="nav-link">Exit</a>
         </div>
       </div>
       

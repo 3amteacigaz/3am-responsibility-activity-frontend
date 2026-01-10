@@ -11,6 +11,9 @@ import Dashboard from './pages/Dashboard';
 import InHouseDashboard from './pages/InHouseDashboard';
 import Community from './pages/Community';
 import Home from './pages/Home';
+import ManageActivities from './pages/ManageActivities';
+import Activities from './pages/Activities';
+import Presence from './pages/Presence';
 
 // Get the base path for GitHub Pages
 const basename = import.meta.env.DEV ? '' : '/3am-responsibility-activity-frontend';
@@ -33,7 +36,7 @@ function App() {
             <Route path="/login" element={<Navigate to="/core-login" replace />} />
             <Route path="/signup" element={<Navigate to="/core-login" replace />} />
 
-            {/* Protected routes */}
+            {/* Core team protected routes */}
             <Route 
               path="/dashboard" 
               element={
@@ -43,10 +46,10 @@ function App() {
               } 
             />
             <Route 
-              path="/in-house-dashboard" 
+              path="/manage-activities" 
               element={
                 <ProtectedRoute>
-                  <InHouseDashboard />
+                  <ManageActivities />
                 </ProtectedRoute>
               } 
             />
@@ -58,6 +61,35 @@ function App() {
                 </ProtectedRoute>
               } 
             />
+
+            {/* In-house team protected routes */}
+            <Route 
+              path="/in-house-dashboard" 
+              element={
+                <ProtectedRoute>
+                  <InHouseDashboard />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/activities" 
+              element={
+                <ProtectedRoute>
+                  <Activities />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/presence" 
+              element={
+                <ProtectedRoute>
+                  <Presence />
+                </ProtectedRoute>
+              } 
+            />
+
+            {/* Redirect old create-activity route to manage-activities */}
+            <Route path="/create-activity" element={<Navigate to="/manage-activities" replace />} />
 
             {/* Catch all route */}
             <Route path="*" element={<Navigate to="/core-login" replace />} />
