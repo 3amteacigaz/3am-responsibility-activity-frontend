@@ -9,31 +9,13 @@
     
     <!-- Start Single Page Apps for GitHub Pages -->
     <script type="text/javascript">
-      console.log('index.html - App loading');
+      // Simple redirect handler - not needed with the new approach
+      console.log('index.html - App loading normally');
       console.log('index.html - Current URL:', window.location.href);
-      console.log('index.html - Hash:', window.location.hash);
-      console.log('index.html - Pathname:', window.location.pathname);
-      
-      // Check if we have a hash route
-      if (window.location.hash && window.location.hash.startsWith('#/')) {
-        console.log('index.html - Hash route detected, React Router will handle it');
-      } else {
-        // Check if we're on a direct route that should be converted to hash
-        var pathname = window.location.pathname;
-        var route = pathname.replace('/3am-responsibility-activity-frontend', '');
-        
-        if (route && route !== '/' && route !== '') {
-          console.log('index.html - Converting direct route to hash:', route);
-          // Convert direct route to hash route
-          var newUrl = window.location.origin + '/3am-responsibility-activity-frontend/#' + route + window.location.search;
-          console.log('index.html - Redirecting to:', newUrl);
-          window.location.replace(newUrl);
-        }
-      }
     </script>
     <!-- End Single Page Apps for GitHub Pages -->
-    <script type="module" crossorigin src="/3am-responsibility-activity-frontend/assets/index-dCJ0m4gN.js"></script>
-    <link rel="stylesheet" crossorigin href="/3am-responsibility-activity-frontend/assets/index-CtTwK5qJ.css">
+    <script type="module" crossorigin src="/3am-responsibility-activity-frontend/assets/index-TgPmSFzA.js"></script>
+    <link rel="stylesheet" crossorigin href="/3am-responsibility-activity-frontend/assets/index-B7DDXriK.css">
   </head>
   <body>
     <div id="root"></div>
