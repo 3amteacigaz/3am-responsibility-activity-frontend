@@ -10,8 +10,9 @@ const Activities = () => {
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [participatingActivities, setParticipatingActivities] = useState(new Set());
-  const [filter, setFilter] = useState('all'); // all, upcoming, participating
+  const [filter, setFilter] = useState('all'); // all, group, individual
   const [activityParticipants, setActivityParticipants] = useState({}); // Store participants for each activity
+  const [inHouseUsers, setInHouseUsers] = useState([]); // For displaying assigned user names
   
   // Popup states
   const [showWelcomePopup, setShowWelcomePopup] = useState(false);
@@ -79,6 +80,7 @@ const Activities = () => {
     document.title = 'Activities - 3AM Core';
     loadActivities();
     loadUserParticipation();
+    loadInHouseUsers(); // Load users for displaying names
     
     // Automatically request notification permission when user visits
     requestNotificationPermission();
@@ -135,6 +137,17 @@ const Activities = () => {
       console.error('Error loading activities:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadInHouseUsers = async () => {
+    try {
+      const { inHousePresenceAPI } = await import('../services/api');
+      const response = await inHousePresenceAPI.getInHouseUsers();
+      setInHouseUsers(response.data.users || []);
+      console.log('✅ Loaded in-house users for names:', response.data.users);
+    } catch (error) {
+      console.error('❌ Error loading in-house users:', error);
     }
   };
 
@@ -306,6 +319,10 @@ const Activities = () => {
   };
 
   const formatDateTime = (date, startTime, endTime) => {
+    if (!date || !startTime) {
+      return 'Date and time to be determined';
+    }
+    
     const activityDate = new Date(date + 'T' + startTime);
     const endDateTime = endTime ? new Date(date + 'T' + endTime) : null;
     
@@ -333,18 +350,36 @@ const Activities = () => {
   };
 
   const isUpcoming = (date, startTime) => {
+    if (!date || !startTime) {
+      return true; // If no date/time, consider it upcoming
+    }
     const activityDate = new Date(date + 'T' + startTime);
     return activityDate > new Date();
   };
 
   const filteredActivities = activities.filter(activity => {
-    if (filter === 'upcoming') {
-      return isUpcoming(activity.date, activity.startTime || activity.time);
+    // For in-house users, filter individual activities to only show assigned ones
+    if (user?.userType === 'in-house' && activity.activityType === 'individual') {
+      if (!activity.assignedUsers || !activity.assignedUsers.includes(user.userId)) {
+        return false; // Don't show if not assigned
+      }
     }
-    if (filter === 'participating') {
-      return participatingActivities.has(activity.id);
+    
+    // Apply filter tabs
+    if (filter === 'group') {
+      return activity.activityType === 'group';
     }
-    return true; // 'all'
+    if (filter === 'individual') {
+      // For core users, show all individual activities
+      if (user?.userType === 'core') {
+        return activity.activityType === 'individual';
+      }
+      // For in-house users, show only assigned individual activities
+      return activity.activityType === 'individual' && 
+             activity.assignedUsers && 
+             activity.assignedUsers.includes(user.userId);
+    }
+    return true; // 'all' - shows group + assigned individual (for in-house) or all (for core)
   });
 
   if (loading) {
@@ -367,8 +402,8 @@ const Activities = () => {
         <div className="dashboard-header desktop-only">
           <div className="user-info">{getDisplayName(user)}</div>
           <div className="nav-links">
-            <Link to="/activities" className="nav-link active">Activities</Link>
-            <Link to="/presence" className="nav-link">Presence</Link>
+            <Link to="/in-house/activities" className="nav-link active">Activities</Link>
+            <Link to="/in-house/presence" className="nav-link">Presence</Link>
             <a href="#" onClick={handleLogout} className="nav-link">Exit</a>
           </div>
         </div>
@@ -387,19 +422,22 @@ const Activities = () => {
                 className={`filter-tab ${filter === 'all' ? 'active' : ''}`}
                 onClick={() => setFilter('all')}
               >
-                All ({activities.length})
+                All ({filteredActivities.length})
               </button>
               <button 
-                className={`filter-tab ${filter === 'upcoming' ? 'active' : ''}`}
-                onClick={() => setFilter('upcoming')}
+                className={`filter-tab ${filter === 'group' ? 'active' : ''}`}
+                onClick={() => setFilter('group')}
               >
-                Upcoming ({activities.filter(a => isUpcoming(a.date, a.startTime || a.time)).length})
+                Group ({activities.filter(a => a.activityType === 'group').length})
               </button>
               <button 
-                className={`filter-tab ${filter === 'participating' ? 'active' : ''}`}
-                onClick={() => setFilter('participating')}
+                className={`filter-tab ${filter === 'individual' ? 'active' : ''}`}
+                onClick={() => setFilter('individual')}
               >
-                My Activities ({participatingActivities.size})
+                Individual ({user?.userType === 'in-house' 
+                  ? activities.filter(a => a.activityType === 'individual' && a.assignedUsers && a.assignedUsers.includes(user.userId)).length
+                  : activities.filter(a => a.activityType === 'individual').length
+                })
               </button>
             </div>
           </div>
@@ -424,36 +462,90 @@ const Activities = () => {
                 const isActivityUpcoming = isUpcoming(activity.date, activity.startTime || activity.time);
                 const participants = activityParticipants[activity.id] || [];
                 
+                // Get assigned user names for individual activities
+                // First try to use assignedUserNames from backend, fallback to looking up users
+                const assignedUserNames = activity.activityType === 'individual'
+                  ? (activity.assignedUserNames && activity.assignedUserNames.length > 0
+                      ? activity.assignedUserNames.join(', ')
+                      : (activity.assignedUsers
+                          ? activity.assignedUsers.map(userId => {
+                              const foundUser = inHouseUsers.find(u => u.userId === userId);
+                              return foundUser ? (foundUser.name || foundUser.username) : 'Unknown';
+                            }).join(', ')
+                          : null))
+                  : null;
+                
+                // Fallback: if activityType is missing, assume it's a group activity
+                const activityType = activity.activityType || 'group';
+                
                 return (
                   <div key={activity.id} className={`activity-card ${isParticipating ? 'participating' : ''}`}>
-                    <div className="activity-header">
-                      <h3 className="activity-title">{activity.title}</h3>
+                    {/* Black Banner with Title */}
+                    <div style={{
+                      background: 'var(--primary)',
+                      color: 'var(--secondary)',
+                      padding: '16px 20px',
+                      marginBottom: '16px'
+                    }}>
+                      <h3 style={{
+                        fontSize: '18px',
+                        fontWeight: '600',
+                        margin: 0,
+                        color: 'var(--secondary)'
+                      }}>{activity.title}</h3>
                     </div>
                     
-                    <div className="activity-datetime">
-                      <i className="fas fa-calendar"></i>
-                      {formatDateTime(activity.date, activity.startTime || activity.time, activity.endTime)}
+                    {/* Date, Time and Badge - NO BLACK BACKGROUND */}
+                    <div style={{ 
+                      padding: '0 20px',
+                      marginBottom: '12px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '12px',
+                      flexWrap: 'wrap'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-primary)' }}>
+                        <i className="fas fa-calendar"></i>
+                        <span>{formatDateTime(activity.date, activity.startTime || activity.time, activity.endTime)}</span>
+                      </div>
+                      <span style={{
+                        display: 'inline-block',
+                        padding: '4px 12px',
+                        fontSize: '12px',
+                        fontWeight: '600',
+                        borderRadius: '0',
+                        background: activityType === 'group' ? '#3b82f6' : '#8b5cf6',
+                        color: 'white'
+                      }}>
+                        {activityType === 'group' 
+                          ? 'GROUP' 
+                          : (assignedUserNames || 'INDIVIDUAL')
+                        }
+                      </span>
                     </div>
                     
-                    <div className="activity-meta">
+                    <div className="activity-meta" style={{ padding: '0 20px' }}>
                       <div className="activity-creator">
                         <i className="fas fa-star"></i>
                         Leader: {getCreatorDisplayName(activity)}
                       </div>
                       <div className="activity-created-at">
+                        <i className="fas fa-clock" style={{ marginRight: '6px' }}></i>
                         Created on {new Date(activity.createdAt).toLocaleDateString('en-US', { 
                           year: 'numeric', 
                           month: 'short', 
-                          day: 'numeric' 
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
                         })}
                       </div>
                     </div>
                     
-                    <div className="activity-description">
+                    <div className="activity-description" style={{ padding: '0 20px' }}>
                       {activity.description}
                     </div>
                     
-                    <div className="activity-stats">
+                    <div className="activity-stats" style={{ padding: '0 20px' }}>
                       <div className="participants-count">
                         <i className="fas fa-users"></i>
                         <span>{activity.participantCount || 0} participants</span>
@@ -463,20 +555,20 @@ const Activities = () => {
                         {isActivityUpcoming ? (
                           <span className="status-upcoming">
                             <i className="fas fa-clock"></i>
-                            Upcoming
+                            Yet to complete
                           </span>
                         ) : (
                           <span className="status-past">
-                            <i className="fas fa-history"></i>
-                            Past Event
+                            <i className="fas fa-check"></i>
+                            Completed
                           </span>
                         )}
                       </div>
                     </div>
 
-                    {/* Participants and Non-Participants Lists - Dropdown Style */}
-                    {(participants.length > 0 || user?.userType === 'core') && (
-                      <div className="activity-participants">
+                    {/* Participants and Non-Participants Lists - Dropdown Style (Only for Group Activities) */}
+                    {activityType === 'group' && (participants.length > 0 || user?.userType === 'core') && (
+                      <div className="activity-participants" style={{ padding: '0 20px' }}>
                         {/* Participants Dropdown */}
                         {participants.length > 0 && (
                           <div className="participants-dropdown">
@@ -562,16 +654,16 @@ const Activities = () => {
                       </div>
                     )}
                     
-                    {/* Participation Buttons - Only show if user is not the creator */}
+                    {/* Participation Buttons - Show for all activities if user is not the creator */}
                     {activity.createdBy !== user.userId && (
-                      <div className="activity-participation-buttons">
+                      <div className="activity-participation-buttons" style={{ marginTop: '16px' }}>
                         <button 
                           onClick={() => handleParticipate(activity.id)}
                           className={`btn-participating ${isParticipating ? 'active' : ''}`}
                           disabled={!isActivityUpcoming}
                         >
                           <i className="fas fa-check-circle"></i>
-                          I'm participating
+                          Accept
                         </button>
                         <button 
                           onClick={() => handleNotParticipate(activity.id)}
@@ -579,14 +671,14 @@ const Activities = () => {
                           disabled={!isActivityUpcoming}
                         >
                           <i className="fas fa-times-circle"></i>
-                          Not participating
+                          Decline
                         </button>
                       </div>
                     )}
 
                     {/* Leader Badge - Show if user is the creator */}
                     {activity.createdBy === user.userId && (
-                      <div className="activity-leader-badge">
+                      <div className="activity-leader-badge" style={{ margin: '12px 20px 0' }}>
                         <i className="fas fa-star"></i>
                         You are the leader of this activity
                       </div>

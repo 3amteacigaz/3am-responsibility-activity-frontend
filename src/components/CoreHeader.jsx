@@ -17,19 +17,19 @@ const CoreHeader = ({ user, onLogout, activeTab = '' }) => {
       <div className="user-info">{getDisplayName(user)}</div>
       <div className="nav-links">
         <Link 
-          to="/dashboard" 
+          to="/core/dashboard" 
           className={`nav-link ${activeTab === 'dashboard' ? 'active' : ''}`}
         >
           Dashboard
         </Link>
         <Link 
-          to="/community" 
+          to="/core/community" 
           className={`nav-link ${activeTab === 'community' ? 'active' : ''}`}
         >
           Community
         </Link>
         <Link 
-          to="/in-house-presence" 
+          to="/core/in-house-presence" 
           className={`nav-link ${activeTab === 'in-house' ? 'active' : ''}`}
         >
           In House

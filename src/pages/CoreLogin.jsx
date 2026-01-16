@@ -31,7 +31,7 @@ const CoreLogin = () => {
   // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated) {
-      navigate('/dashboard');
+      navigate('/core/dashboard');
     }
   }, [isAuthenticated, navigate]);
 
@@ -99,7 +99,7 @@ const CoreLogin = () => {
       if (result.success) {
         setMessage('Password set successfully! Redirecting...');
         setTimeout(() => {
-          navigate('/dashboard');
+          navigate('/core/dashboard');
         }, 1500);
       } else {
         setMessage(result.error);
@@ -118,7 +118,7 @@ const CoreLogin = () => {
       if (result.success) {
         setMessage('Access granted! Redirecting...');
         setTimeout(() => {
-          navigate('/dashboard');
+          navigate('/core/dashboard');
         }, 1000);
       } else {
         setMessage(result.error);

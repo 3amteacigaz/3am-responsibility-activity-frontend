@@ -53,68 +53,75 @@ function App() {
             <Route path="/login" element={<Navigate to="/core-login" replace />} />
             <Route path="/signup" element={<Navigate to="/core-login" replace />} />
 
-            {/* Core team protected routes */}
+            {/* Core team protected routes - all under /core/* */}
             <Route 
-              path="/dashboard" 
+              path="/core/dashboard" 
               element={
-                <ProtectedRoute>
+                <ProtectedRoute userType="core">
                   <Dashboard />
                 </ProtectedRoute>
               } 
             />
             <Route 
-              path="/manage-activities" 
+              path="/core/manage-activities" 
               element={
-                <ProtectedRoute>
+                <ProtectedRoute userType="core">
                   <ManageActivities />
                 </ProtectedRoute>
               } 
             />
             <Route 
-              path="/community" 
+              path="/core/community" 
               element={
-                <ProtectedRoute>
+                <ProtectedRoute userType="core">
                   <Community />
                 </ProtectedRoute>
               } 
             />
             <Route 
-              path="/in-house-presence" 
+              path="/core/in-house-presence" 
               element={
-                <ProtectedRoute>
+                <ProtectedRoute userType="core">
                   <InHousePresence />
                 </ProtectedRoute>
               } 
             />
 
-            {/* In-house team protected routes */}
+            {/* In-house team protected routes - all under /in-house/* */}
             <Route 
-              path="/in-house-dashboard" 
+              path="/in-house/dashboard" 
               element={
-                <ProtectedRoute>
+                <ProtectedRoute userType="in-house">
                   <InHouseDashboard />
                 </ProtectedRoute>
               } 
             />
             <Route 
-              path="/activities" 
+              path="/in-house/activities" 
               element={
-                <ProtectedRoute>
+                <ProtectedRoute userType="in-house">
                   <Activities />
                 </ProtectedRoute>
               } 
             />
             <Route 
-              path="/presence" 
+              path="/in-house/presence" 
               element={
-                <ProtectedRoute>
+                <ProtectedRoute userType="in-house">
                   <Presence />
                 </ProtectedRoute>
               } 
             />
 
-            {/* Redirect old create-activity route to manage-activities */}
-            <Route path="/create-activity" element={<Navigate to="/manage-activities" replace />} />
+            {/* Legacy route redirects */}
+            <Route path="/dashboard" element={<Navigate to="/core/dashboard" replace />} />
+            <Route path="/manage-activities" element={<Navigate to="/core/manage-activities" replace />} />
+            <Route path="/community" element={<Navigate to="/core/community" replace />} />
+            <Route path="/in-house-presence" element={<Navigate to="/core/in-house-presence" replace />} />
+            <Route path="/in-house-dashboard" element={<Navigate to="/in-house/dashboard" replace />} />
+            <Route path="/activities" element={<Navigate to="/in-house/activities" replace />} />
+            <Route path="/presence" element={<Navigate to="/in-house/presence" replace />} />
+            <Route path="/create-activity" element={<Navigate to="/core/manage-activities" replace />} />
 
             {/* Catch all route */}
             <Route path="*" element={<Navigate to="/core-login" replace />} />

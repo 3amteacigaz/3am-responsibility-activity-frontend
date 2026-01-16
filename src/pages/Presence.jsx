@@ -401,8 +401,8 @@ const Presence = () => {
       <div className="dashboard-header desktop-only">
         <div className="user-info">{getDisplayName(user)}</div>
         <div className="nav-links">
-          <Link to="/activities" className="nav-link">Activities</Link>
-          <Link to="/presence" className="nav-link active">Presence</Link>
+          <Link to="/in-house/activities" className="nav-link">Activities</Link>
+          <Link to="/in-house/presence" className="nav-link active">Presence</Link>
           <a href="#" onClick={handleLogout} className="nav-link">Exit</a>
         </div>
       </div>

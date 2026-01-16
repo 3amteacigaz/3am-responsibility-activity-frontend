@@ -64,30 +64,77 @@ const MobileNav = ({ user, onLogout }) => {
             </div>
 
             <nav className="mobile-menu-nav">
-              <Link 
-                to="/dashboard" 
-                className={`mobile-menu-item ${isActive('/dashboard') ? 'active' : ''}`}
-                onClick={closeMenu}
-              >
-                <i className="fas fa-tachometer-alt"></i>
-                <span>Dashboard</span>
-              </Link>
-              <Link 
-                to="/community" 
-                className={`mobile-menu-item ${isActive('/community') ? 'active' : ''}`}
-                onClick={closeMenu}
-              >
-                <i className="fas fa-users"></i>
-                <span>Community</span>
-              </Link>
-              <Link 
-                to="/in-house-presence" 
-                className={`mobile-menu-item ${isActive('/in-house-presence') ? 'active' : ''}`}
-                onClick={closeMenu}
-              >
-                <i className="fas fa-user-check"></i>
-                <span>In House</span>
-              </Link>
+              {user?.userType === 'core' ? (
+                <>
+                  <Link 
+                    to="/core/dashboard" 
+                    className={`mobile-menu-item ${isActive('/core/dashboard') ? 'active' : ''}`}
+                    onClick={closeMenu}
+                  >
+                    <i className="fas fa-tachometer-alt"></i>
+                    <span>Dashboard</span>
+                  </Link>
+                  <Link 
+                    to="/core/activities" 
+                    className={`mobile-menu-item ${isActive('/core/activities') ? 'active' : ''}`}
+                    onClick={closeMenu}
+                  >
+                    <i className="fas fa-calendar-alt"></i>
+                    <span>Activities</span>
+                  </Link>
+                  <Link 
+                    to="/core/presence" 
+                    className={`mobile-menu-item ${isActive('/core/presence') ? 'active' : ''}`}
+                    onClick={closeMenu}
+                  >
+                    <i className="fas fa-calendar-check"></i>
+                    <span>Presence</span>
+                  </Link>
+                  <Link 
+                    to="/core/community" 
+                    className={`mobile-menu-item ${isActive('/core/community') ? 'active' : ''}`}
+                    onClick={closeMenu}
+                  >
+                    <i className="fas fa-users"></i>
+                    <span>Community</span>
+                  </Link>
+                  <Link 
+                    to="/core/in-house-presence" 
+                    className={`mobile-menu-item ${isActive('/core/in-house-presence') ? 'active' : ''}`}
+                    onClick={closeMenu}
+                  >
+                    <i className="fas fa-user-check"></i>
+                    <span>In House</span>
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <Link 
+                    to="/in-house/dashboard" 
+                    className={`mobile-menu-item ${isActive('/in-house/dashboard') ? 'active' : ''}`}
+                    onClick={closeMenu}
+                  >
+                    <i className="fas fa-tachometer-alt"></i>
+                    <span>Dashboard</span>
+                  </Link>
+                  <Link 
+                    to="/in-house/activities" 
+                    className={`mobile-menu-item ${isActive('/in-house/activities') ? 'active' : ''}`}
+                    onClick={closeMenu}
+                  >
+                    <i className="fas fa-calendar-alt"></i>
+                    <span>Activities</span>
+                  </Link>
+                  <Link 
+                    to="/in-house/presence" 
+                    className={`mobile-menu-item ${isActive('/in-house/presence') ? 'active' : ''}`}
+                    onClick={closeMenu}
+                  >
+                    <i className="fas fa-calendar-check"></i>
+                    <span>Presence</span>
+                  </Link>
+                </>
+              )}
             </nav>
 
             <div className="mobile-menu-footer">

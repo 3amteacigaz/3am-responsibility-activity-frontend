@@ -25,12 +25,19 @@ const InHousePresence = () => {
   const [createFormData, setCreateFormData] = useState({
     title: '',
     description: '',
-    date: new Date().toISOString().split('T')[0],
+    date: '',
     startTime: '',
     endTime: '',
+    activityType: 'group', // 'group', 'individual'
+    assignedUsers: [] // For individual activities
   });
   const [createMessage, setCreateMessage] = useState('');
   const [createLoading, setCreateLoading] = useState(false);
+  const [inHouseUsers, setInHouseUsers] = useState([]); // List of in-house users for dropdown
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [activityToDelete, setActivityToDelete] = useState(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [activityFilter, setActivityFilter] = useState('all'); // 'all', 'group', 'individual'
 
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -50,6 +57,7 @@ const InHousePresence = () => {
       loadActivitiesData();
     } else if (activeTab === 'manage-activities') {
       loadMyActivities();
+      loadInHouseUsersForDropdown(); // Load users for the dropdown
     }
   }, [activeTab]);
 
@@ -169,12 +177,55 @@ const InHousePresence = () => {
     }
   };
 
+  const loadInHouseUsersForDropdown = async () => {
+    try {
+      const response = await inHousePresenceAPI.getInHouseUsers();
+      setInHouseUsers(response.data.users || []);
+      console.log('✅ Loaded in-house users for dropdown:', response.data.users);
+    } catch (error) {
+      console.error('❌ Error loading in-house users for dropdown:', error);
+    }
+  };
+
+  const handleDeleteClick = (activity) => {
+    setActivityToDelete(activity);
+    setShowDeleteConfirm(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!activityToDelete) return;
+    
+    try {
+      setDeleteLoading(true);
+      await activityAPI.deleteActivity(activityToDelete.id);
+      console.log('Activity deleted:', activityToDelete.id);
+      
+      // Reload activities
+      await loadMyActivities();
+      
+      // Close modal
+      setShowDeleteConfirm(false);
+      setActivityToDelete(null);
+    } catch (error) {
+      console.error('Error deleting activity:', error);
+      alert(error.response?.data?.error || 'Error deleting activity. Please try again.');
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    setShowDeleteConfirm(false);
+    setActivityToDelete(null);
+  };
+
   const handleCreateActivity = async (e) => {
     e.preventDefault();
     setCreateMessage('');
     setCreateLoading(true);
 
-    if (createFormData.startTime && createFormData.endTime) {
+    // Validate time logic only if both times are provided
+    if (createFormData.date && createFormData.startTime && createFormData.endTime) {
       const start = new Date(`${createFormData.date}T${createFormData.startTime}`);
       const end = new Date(`${createFormData.date}T${createFormData.endTime}`);
       
@@ -184,6 +235,15 @@ const InHousePresence = () => {
         return;
       }
     }
+
+    // Validate individual activity has assigned users
+    if (createFormData.activityType === 'individual' && (!createFormData.assignedUsers || createFormData.assignedUsers.length === 0)) {
+      setCreateMessage('Please select at least one user for individual activity');
+      setCreateLoading(false);
+      return;
+    }
+
+    console.log('Creating activity with data:', createFormData);
 
     try {
       const response = await activityAPI.createActivity(createFormData);
@@ -195,10 +255,10 @@ const InHousePresence = () => {
         await notificationAPI.sendActivityCreatedNotification({
           activityId: response.data.activityId,
           activityTitle: createFormData.title,
-          activityDate: createFormData.date,
+          activityDate: createFormData.date || 'TBD',
           activityTime: createFormData.startTime && createFormData.endTime 
             ? `${createFormData.startTime} - ${createFormData.endTime}`
-            : createFormData.startTime
+            : createFormData.startTime || 'TBD'
         });
         console.log('📢 Activity creation notification sent to all users');
       } catch (notificationError) {
@@ -206,6 +266,17 @@ const InHousePresence = () => {
       }
       
       await loadMyActivities();
+
+      // Reset form
+      setCreateFormData({
+        title: '',
+        description: '',
+        date: '',
+        startTime: '',
+        endTime: '',
+        activityType: 'group',
+        assignedUsers: []
+      });
 
       setTimeout(() => {
         setShowCreateModal(false);
@@ -279,6 +350,10 @@ const InHousePresence = () => {
   };
 
   const formatDateTime = (date, startTime, endTime) => {
+    if (!date || !startTime) {
+      return 'Date and time to be determined';
+    }
+    
     const activityDate = new Date(date + 'T' + startTime);
     const endDateTime = endTime ? new Date(date + 'T' + endTime) : null;
     
@@ -306,6 +381,9 @@ const InHousePresence = () => {
   };
 
   const isUpcoming = (date, startTime) => {
+    if (!date || !startTime) {
+      return true; // If no date/time, consider it upcoming
+    }
     const activityDate = new Date(date + 'T' + startTime);
     return activityDate > new Date();
   };
@@ -654,10 +732,73 @@ const InHousePresence = () => {
               </div>
             ) : (
               <div className="activities-section">
-                <h2 className="section-title">
-                  <i className="fas fa-calendar-alt"></i>
-                  Available Activities
-                </h2>
+                <div className="section-header">
+                  <h2 className="section-title">
+                    <i className="fas fa-calendar-alt"></i>
+                    Available Activities
+                  </h2>
+                  
+                  {/* Filter Tabs */}
+                  <div className="filter-tabs" style={{
+                    display: 'flex',
+                    gap: '0',
+                    borderBottom: '1px solid var(--border)'
+                  }}>
+                    <button 
+                      className={`filter-tab ${activityFilter === 'all' ? 'active' : ''}`}
+                      onClick={() => setActivityFilter('all')}
+                      style={{
+                        background: activityFilter === 'all' ? 'var(--primary)' : 'var(--secondary)',
+                        color: activityFilter === 'all' ? 'var(--secondary)' : 'var(--text-primary)',
+                        border: '1px solid var(--border)',
+                        borderBottom: 'none',
+                        padding: '10px 16px',
+                        fontSize: '13px',
+                        fontWeight: '500',
+                        cursor: 'pointer',
+                        transition: 'var(--transition)'
+                      }}
+                    >
+                      All ({activities.length})
+                    </button>
+                    <button 
+                      className={`filter-tab ${activityFilter === 'group' ? 'active' : ''}`}
+                      onClick={() => setActivityFilter('group')}
+                      style={{
+                        background: activityFilter === 'group' ? 'var(--primary)' : 'var(--secondary)',
+                        color: activityFilter === 'group' ? 'var(--secondary)' : 'var(--text-primary)',
+                        border: '1px solid var(--border)',
+                        borderBottom: 'none',
+                        borderLeft: 'none',
+                        padding: '10px 16px',
+                        fontSize: '13px',
+                        fontWeight: '500',
+                        cursor: 'pointer',
+                        transition: 'var(--transition)'
+                      }}
+                    >
+                      Group ({activities.filter(a => a.activityType === 'group').length})
+                    </button>
+                    <button 
+                      className={`filter-tab ${activityFilter === 'individual' ? 'active' : ''}`}
+                      onClick={() => setActivityFilter('individual')}
+                      style={{
+                        background: activityFilter === 'individual' ? 'var(--primary)' : 'var(--secondary)',
+                        color: activityFilter === 'individual' ? 'var(--secondary)' : 'var(--text-primary)',
+                        border: '1px solid var(--border)',
+                        borderBottom: 'none',
+                        borderLeft: 'none',
+                        padding: '10px 16px',
+                        fontSize: '13px',
+                        fontWeight: '500',
+                        cursor: 'pointer',
+                        transition: 'var(--transition)'
+                      }}
+                    >
+                      Individual ({activities.filter(a => a.activityType === 'individual').length})
+                    </button>
+                  </div>
+                </div>
 
                 {activities.length === 0 ? (
                   <div className="empty-state">
@@ -667,63 +808,130 @@ const InHousePresence = () => {
                   </div>
                 ) : (
                   <div className="activities-grid">
-                    {activities.map(activity => {
-                      const isParticipating = participatingActivities.has(activity.id);
-                      const isActivityUpcoming = isUpcoming(activity.date, activity.startTime || activity.time);
-                      const participants = activityParticipants[activity.id] || [];
-                      
-                      return (
-                        <div key={activity.id} className="activity-card">
-                          <div className="activity-header">
-                            <h3 className="activity-title">{activity.title}</h3>
-                          </div>
-                          
-                          <div className="activity-datetime">
-                            <i className="fas fa-calendar"></i>
-                            {formatDateTime(activity.date, activity.startTime || activity.time, activity.endTime)}
-                          </div>
-                          
-                          <div className="activity-meta">
-                            <div className="activity-creator">
-                              <i className="fas fa-star"></i>
-                              Leader: {getCreatorDisplayName(activity)}
+                    {activities
+                      .filter(activity => {
+                        if (activityFilter === 'group') return activity.activityType === 'group';
+                        if (activityFilter === 'individual') return activity.activityType === 'individual';
+                        return true; // 'all'
+                      })
+                      .map(activity => {
+                        const isParticipating = participatingActivities.has(activity.id);
+                        const isActivityUpcoming = isUpcoming(activity.date, activity.startTime || activity.time);
+                        const participants = activityParticipants[activity.id] || [];
+                        
+                        // Get assigned user names for individual activities
+                        // First try to use assignedUserNames from backend, fallback to looking up users
+                        const assignedUserNames = activity.activityType === 'individual'
+                          ? (activity.assignedUserNames && activity.assignedUserNames.length > 0
+                              ? activity.assignedUserNames.join(', ')
+                              : (activity.assignedUsers
+                                  ? activity.assignedUsers.map(userId => {
+                                      const user = inHouseUsers.find(u => u.userId === userId);
+                                      return user ? (user.name || user.username) : 'Unknown';
+                                    }).join(', ')
+                                  : null))
+                          : null;
+                        
+                        // Fallback: if activityType is missing, assume it's a group activity
+                        const activityType = activity.activityType || 'group';
+                        
+                        return (
+                          <div key={activity.id} className="activity-card">
+                            {/* Black Banner with Title */}
+                            <div style={{
+                              background: 'var(--primary)',
+                              color: 'var(--secondary)',
+                              padding: '16px 20px',
+                              marginBottom: '16px'
+                            }}>
+                              <h3 style={{
+                                fontSize: '18px',
+                                fontWeight: '600',
+                                margin: 0,
+                                color: 'var(--secondary)'
+                              }}>{activity.title}</h3>
                             </div>
-                          </div>
-                          
-                          <div className="activity-description">
-                            {activity.description}
-                          </div>
-                          
-                          <div className="activity-stats">
-                            <div className="participants-count">
-                              <i className="fas fa-users"></i>
-                              <span>{activity.participantCount || 0} participants</span>
+                            
+                            {/* Date, Time and Badge - NO BLACK BACKGROUND */}
+                            <div style={{ 
+                              padding: '0 20px',
+                              marginBottom: '12px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '12px',
+                              flexWrap: 'wrap'
+                            }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-primary)' }}>
+                                <i className="fas fa-calendar"></i>
+                                <span>{formatDateTime(activity.date, activity.startTime || activity.time, activity.endTime)}</span>
+                              </div>
+                              <span style={{
+                                display: 'inline-block',
+                                padding: '4px 12px',
+                                fontSize: '12px',
+                                fontWeight: '600',
+                                borderRadius: '0',
+                                background: activityType === 'group' ? '#3b82f6' : '#8b5cf6',
+                                color: 'white'
+                              }}>
+                                {activityType === 'group' 
+                                  ? 'GROUP' 
+                                  : (assignedUserNames || 'INDIVIDUAL')
+                                }
+                              </span>
                             </div>
-                            <div className="activity-status">
-                              {isActivityUpcoming ? (
-                                <span className="status-upcoming">
-                                  <i className="fas fa-clock"></i>
-                                  Upcoming
-                                </span>
-                              ) : (
-                                <span className="status-past">
-                                  <i className="fas fa-history"></i>
-                                  Past Event
-                                </span>
-                              )}
+                            
+                            <div className="activity-meta" style={{ padding: '0 20px' }}>
+                              <div className="activity-creator">
+                                <i className="fas fa-star"></i>
+                                Leader: {getCreatorDisplayName(activity)}
+                              </div>
+                              <div className="activity-created-at">
+                                <i className="fas fa-clock" style={{ marginRight: '6px' }}></i>
+                                Created on {new Date(activity.createdAt).toLocaleDateString('en-US', { 
+                                  year: 'numeric', 
+                                  month: 'short', 
+                                  day: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })}
+                              </div>
                             </div>
-                          </div>
+                            
+                            <div className="activity-description" style={{ padding: '0 20px' }}>
+                              {activity.description}
+                            </div>
+                            
+                            <div className="activity-stats" style={{ padding: '0 20px' }}>
+                              <div className="participants-count">
+                                <i className="fas fa-users"></i>
+                                <span>{activity.participantCount || 0} participants</span>
+                              </div>
+                              <div className="activity-status">
+                                {isActivityUpcoming ? (
+                                  <span className="status-upcoming">
+                                    <i className="fas fa-clock"></i>
+                                    Yet to complete
+                                  </span>
+                                ) : (
+                                  <span className="status-past">
+                                    <i className="fas fa-check"></i>
+                                    Completed
+                                  </span>
+                                )}
+                              </div>
+                            </div>
 
-                          {/* Leader Badge - Show if user is the creator */}
-                          {activity.createdBy === user.userId && (
-                            <div className="activity-leader-badge">
-                              <i className="fas fa-star"></i>
-                              You are the leader of this activity
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
+                            {/* Leader Badge - Show if user is the creator */}
+                            {activity.createdBy === user.userId && (
+                              <div className="activity-leader-badge" style={{ margin: '12px 20px 0' }}>
+                                <i className="fas fa-star"></i>
+                                You are the leader of this activity
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
                   </div>
                 )}
               </div>
@@ -769,59 +977,138 @@ const InHousePresence = () => {
                   </div>
                 ) : (
                   <div className="activities-grid">
-                    {myActivities.map(activity => (
-                      <div key={activity.id} className="activity-card">
-                        <div className="activity-header">
-                          <h3 className="activity-title">{activity.title}</h3>
-                          <div className="activity-actions">
-                            <button 
-                              onClick={() => {/* handleEdit(activity) */}}
-                              className="btn-edit"
-                              title="Edit Activity"
-                            >
-                              <i className="fas fa-edit"></i>
-                            </button>
-                            <button 
-                              onClick={() => {/* handleDelete(activity.id) */}}
-                              className="btn-delete"
-                              title="Delete Activity"
-                            >
-                              <i className="fas fa-trash"></i>
-                            </button>
+                    {myActivities.map(activity => {
+                      // Get assigned user names for individual activities
+                      // First try to use assignedUserNames from backend, fallback to looking up users
+                      const assignedUserNames = activity.activityType === 'individual'
+                        ? (activity.assignedUserNames && activity.assignedUserNames.length > 0
+                            ? activity.assignedUserNames.join(', ')
+                            : (activity.assignedUsers
+                                ? activity.assignedUsers.map(userId => {
+                                    const user = inHouseUsers.find(u => u.userId === userId);
+                                    return user ? (user.name || user.username) : 'Unknown';
+                                  }).join(', ')
+                                : null))
+                        : null;
+                      
+                      // Fallback: if activityType is missing, assume it's a group activity
+                      const activityType = activity.activityType || 'group';
+
+                      return (
+                        <div key={activity.id} className="activity-card">
+                          {/* Black Banner with Title and Actions */}
+                          <div style={{
+                            background: 'var(--primary)',
+                            color: 'var(--secondary)',
+                            padding: '16px 20px',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            marginBottom: '16px'
+                          }}>
+                            <h3 style={{
+                              fontSize: '18px',
+                              fontWeight: '600',
+                              margin: 0,
+                              color: 'var(--secondary)',
+                              flex: 1
+                            }}>{activity.title}</h3>
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                              <button 
+                                onClick={() => {
+                                  // TODO: Implement edit functionality
+                                  alert('Edit functionality coming soon!');
+                                }}
+                                className="btn-edit"
+                                title="Edit Activity"
+                                style={{
+                                  background: 'transparent',
+                                  border: '1px solid var(--secondary)',
+                                  color: 'var(--secondary)',
+                                  padding: '8px 12px',
+                                  cursor: 'pointer',
+                                  transition: 'var(--transition)'
+                                }}
+                              >
+                                <i className="fas fa-edit"></i>
+                              </button>
+                              <button 
+                                onClick={() => handleDeleteClick(activity)}
+                                className="btn-delete"
+                                title="Delete Activity"
+                                style={{
+                                  background: 'transparent',
+                                  border: '1px solid var(--secondary)',
+                                  color: 'var(--secondary)',
+                                  padding: '8px 12px',
+                                  cursor: 'pointer',
+                                  transition: 'var(--transition)'
+                                }}
+                              >
+                                <i className="fas fa-trash"></i>
+                              </button>
+                            </div>
+                          </div>
+                          
+                          {/* Date, Time and Badge - NO BLACK BACKGROUND */}
+                          <div style={{ 
+                            padding: '0 20px',
+                            marginBottom: '12px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '12px',
+                            flexWrap: 'wrap'
+                          }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-primary)' }}>
+                              <i className="fas fa-calendar"></i>
+                              <span>{formatDateTime(activity.date, activity.startTime || activity.time, activity.endTime)}</span>
+                            </div>
+                            <span style={{
+                              display: 'inline-block',
+                              padding: '4px 12px',
+                              fontSize: '12px',
+                              fontWeight: '600',
+                              borderRadius: '0',
+                              background: activityType === 'group' ? '#3b82f6' : '#8b5cf6',
+                              color: 'white'
+                            }}>
+                              {activityType === 'group' 
+                                ? 'GROUP' 
+                                : (assignedUserNames || 'INDIVIDUAL')
+                              }
+                            </span>
+                          </div>
+                          
+                          <div className="activity-meta" style={{ padding: '0 20px' }}>
+                            <div className="activity-creator">
+                              <i className="fas fa-star"></i>
+                              Leader: {getCreatorDisplayName(activity)}
+                            </div>
+                            <div className="activity-created-at">
+                              <i className="fas fa-clock" style={{ marginRight: '6px' }}></i>
+                              Created on {new Date(activity.createdAt).toLocaleDateString('en-US', { 
+                                year: 'numeric', 
+                                month: 'short', 
+                                day: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </div>
+                          </div>
+                          
+                          <div className="activity-description" style={{ padding: '0 20px' }}>
+                            {activity.description}
+                          </div>
+                          
+                          <div className="activity-stats" style={{ padding: '0 20px' }}>
+                            <div className="participants-count">
+                              <i className="fas fa-users"></i>
+                              <span>{activity.participantCount || 0} participants</span>
+                            </div>
                           </div>
                         </div>
-                        
-                        <div className="activity-datetime">
-                          <i className="fas fa-calendar"></i>
-                          {formatDateTime(activity.date, activity.startTime || activity.time, activity.endTime)}
-                        </div>
-                        
-                        <div className="activity-meta">
-                          <div className="activity-creator">
-                            <i className="fas fa-star"></i>
-                            Leader: {getCreatorDisplayName(activity)}
-                          </div>
-                          <div className="activity-created-at">
-                            Created on {new Date(activity.createdAt).toLocaleDateString('en-US', { 
-                              year: 'numeric', 
-                              month: 'short', 
-                              day: 'numeric' 
-                            })}
-                          </div>
-                        </div>
-                        
-                        <div className="activity-description">
-                          {activity.description}
-                        </div>
-                        
-                        <div className="activity-stats">
-                          <div className="participants-count">
-                            <i className="fas fa-users"></i>
-                            <span>{activity.participantCount || 0} participants</span>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -870,42 +1157,123 @@ const InHousePresence = () => {
                     />
                   </div>
 
+                  {/* Activity Type Selection */}
+                  <div className="form-group">
+                    <label htmlFor="modal-activity-type">Activity Type *</label>
+                    <select
+                      id="modal-activity-type"
+                      name="activityType"
+                      value={createFormData.activityType}
+                      onChange={(e) => setCreateFormData({...createFormData, activityType: e.target.value, assignedUsers: []})}
+                      required
+                      disabled={createLoading}
+                      style={{
+                        width: '100%',
+                        padding: '10px',
+                        border: '1px solid var(--border)',
+                        background: 'var(--secondary)',
+                        color: 'var(--text-primary)',
+                        fontSize: '14px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <option value="group">Group Activity (All in-house members)</option>
+                      <option value="individual">Individual Activity (Select specific members)</option>
+                    </select>
+                    <small style={{ display: 'block', marginTop: '6px', color: 'var(--text-secondary)', fontSize: '12px' }}>
+                      {createFormData.activityType === 'group' && 'This activity is for all in-house members'}
+                      {createFormData.activityType === 'individual' && 'Select specific members below'}
+                    </small>
+                  </div>
+
+                  {/* User Selection for Individual Activities */}
+                  {createFormData.activityType === 'individual' && (
+                    <div className="form-group">
+                      <label htmlFor="modal-assigned-users">Assign To *</label>
+                      <div style={{
+                        border: '1px solid var(--border)',
+                        background: 'var(--secondary)',
+                        padding: '12px',
+                        maxHeight: '200px',
+                        overflowY: 'auto'
+                      }}>
+                        {inHouseUsers.length === 0 ? (
+                          <p style={{ color: 'var(--text-secondary)', fontSize: '13px', margin: 0 }}>
+                            Loading users...
+                          </p>
+                        ) : (
+                          inHouseUsers.map(user => (
+                            <label
+                              key={user.userId}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                padding: '8px',
+                                cursor: 'pointer',
+                                borderBottom: '1px solid var(--border)'
+                              }}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={createFormData.assignedUsers.includes(user.userId)}
+                                onChange={(e) => {
+                                  const newAssignedUsers = e.target.checked
+                                    ? [...createFormData.assignedUsers, user.userId]
+                                    : createFormData.assignedUsers.filter(id => id !== user.userId);
+                                  setCreateFormData({...createFormData, assignedUsers: newAssignedUsers});
+                                }}
+                                disabled={createLoading}
+                                style={{ marginRight: '10px' }}
+                              />
+                              <span style={{ fontSize: '14px', color: 'var(--text-primary)' }}>
+                                {user.name || user.username}
+                              </span>
+                              <span style={{ fontSize: '12px', color: 'var(--text-secondary)', marginLeft: '8px' }}>
+                                ({user.email})
+                              </span>
+                            </label>
+                          ))
+                        )}
+                      </div>
+                      <small style={{ display: 'block', marginTop: '6px', color: 'var(--text-secondary)', fontSize: '12px' }}>
+                        Selected: {createFormData.assignedUsers.length} member(s)
+                      </small>
+                    </div>
+                  )}
+
                   <div className="form-row three-columns">
                     <div className="form-group">
-                      <label htmlFor="modal-date">Date *</label>
+                      <label htmlFor="modal-date">Date (Optional)</label>
                       <input
                         type="date"
                         id="modal-date"
                         name="date"
                         value={createFormData.date}
                         onChange={(e) => setCreateFormData({...createFormData, date: e.target.value})}
-                        required
                         disabled={createLoading}
                       />
                     </div>
                     
                     <div className="form-group">
-                      <label htmlFor="modal-start-time">Start Time *</label>
+                      <label htmlFor="modal-start-time">Start Time (Optional)</label>
                       <input
                         type="time"
                         id="modal-start-time"
                         name="startTime"
                         value={createFormData.startTime}
                         onChange={(e) => setCreateFormData({...createFormData, startTime: e.target.value})}
-                        required
                         disabled={createLoading}
                       />
                     </div>
 
                     <div className="form-group">
-                      <label htmlFor="modal-end-time">End Time *</label>
+                      <label htmlFor="modal-end-time">End Time (Optional)</label>
                       <input
                         type="time"
                         id="modal-end-time"
                         name="endTime"
                         value={createFormData.endTime}
                         onChange={(e) => setCreateFormData({...createFormData, endTime: e.target.value})}
-                        required
                         disabled={createLoading}
                       />
                     </div>
@@ -954,6 +1322,87 @@ const InHousePresence = () => {
                     </button>
                   </div>
                 </form>
+              </div>
+            </div>
+          </div>
+        )}
+        {/* Delete Confirmation Modal */}
+        {showDeleteConfirm && activityToDelete && (
+          <div className="modal-overlay" onClick={handleDeleteCancel}>
+            <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '500px' }}>
+              <div className="modal-header">
+                <h2 className="modal-title">
+                  <i className="fas fa-exclamation-triangle" style={{ marginRight: '8px', color: '#ef4444' }}></i>
+                  Confirm Delete
+                </h2>
+                <button
+                  onClick={handleDeleteCancel}
+                  className="modal-close"
+                  title="Close"
+                  disabled={deleteLoading}
+                >
+                  <i className="fas fa-times"></i>
+                </button>
+              </div>
+
+              <div className="modal-body">
+                <p style={{ fontSize: '14px', color: 'var(--text-primary)', marginBottom: '16px' }}>
+                  Are you sure you want to delete this activity?
+                </p>
+                <div style={{
+                  padding: '12px',
+                  background: 'var(--secondary)',
+                  border: '1px solid var(--border)',
+                  marginBottom: '20px'
+                }}>
+                  <h4 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '8px' }}>
+                    {activityToDelete.title}
+                  </h4>
+                  <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: 0 }}>
+                    {formatDateTime(activityToDelete.date, activityToDelete.startTime, activityToDelete.endTime)}
+                  </p>
+                </div>
+                <p style={{ fontSize: '13px', color: '#ef4444', marginBottom: '20px' }}>
+                  <i className="fas fa-info-circle" style={{ marginRight: '6px' }}></i>
+                  This action cannot be undone.
+                </p>
+
+                <div className="modal-actions">
+                  <button
+                    type="button"
+                    onClick={handleDeleteCancel}
+                    className="btn-cancel"
+                    disabled={deleteLoading}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleDeleteConfirm}
+                    className="btn-delete"
+                    disabled={deleteLoading}
+                    style={{
+                      background: '#ef4444',
+                      color: 'white',
+                      border: 'none',
+                      padding: '10px 20px',
+                      cursor: deleteLoading ? 'not-allowed' : 'pointer',
+                      opacity: deleteLoading ? 0.6 : 1
+                    }}
+                  >
+                    {deleteLoading ? (
+                      <>
+                        <i className="fas fa-spinner fa-spin" style={{ marginRight: '8px' }}></i>
+                        Deleting...
+                      </>
+                    ) : (
+                      <>
+                        <i className="fas fa-trash" style={{ marginRight: '8px' }}></i>
+                        Delete Activity
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
           </div>

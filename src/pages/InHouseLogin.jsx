@@ -22,7 +22,7 @@ const InHouseLogin = () => {
   // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated) {
-      navigate('/activities');
+      navigate('/in-house/dashboard');
     }
   }, [isAuthenticated, navigate]);
 
@@ -48,7 +48,7 @@ const InHouseLogin = () => {
       if (result.success) {
         setMessage('In-house access granted! Redirecting...');
         setTimeout(() => {
-          navigate('/activities');
+          navigate('/in-house/dashboard');
         }, 1000);
       } else {
         setMessage(result.error);

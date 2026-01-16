@@ -23,7 +23,7 @@ const InHouseSignup = () => {
   // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated) {
-      navigate('/in-house-dashboard');
+      navigate('/in-house/dashboard');
     }
   }, [isAuthenticated, navigate]);
 
