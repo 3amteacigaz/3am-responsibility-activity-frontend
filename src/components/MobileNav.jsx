@@ -98,6 +98,14 @@ const MobileNav = ({ user, onLogout }) => {
                     <i className="fas fa-users"></i>
                     <span>Community</span>
                   </Link>
+                  <Link 
+                    to="/in-house-presence" 
+                    className={`mobile-menu-item ${isActive('/in-house-presence') ? 'active' : ''}`}
+                    onClick={closeMenu}
+                  >
+                    <i className="fas fa-user-check"></i>
+                    <span>In House</span>
+                  </Link>
                 </>
               ) : (
                 <>

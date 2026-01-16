@@ -135,6 +135,30 @@ export const presenceAPI = {
   },
 };
 
+// In-House Presence API calls - FOR CORE TEAM
+export const inHousePresenceAPI = {
+  // Get all in-house users
+  getInHouseUsers: () => {
+    console.log('🔄 Making getInHouseUsers API call');
+    console.log('🔑 Token available:', !!localStorage.getItem('token'));
+    return api.get('/in-house-presence/users');
+  },
+  
+  // Get presence data for a specific user and month
+  getUserPresence: (userId, year, month) => {
+    console.log('🔄 Making getUserPresence API call:', { userId, year, month });
+    console.log('🔑 Token available:', !!localStorage.getItem('token'));
+    return api.get(`/in-house-presence/user/${userId}/month/${year}/${month}`);
+  },
+  
+  // Get presence overview for all users for a specific month
+  getPresenceOverview: (year, month) => {
+    console.log('🔄 Making getPresenceOverview API call:', { year, month });
+    console.log('🔑 Token available:', !!localStorage.getItem('token'));
+    return api.get(`/in-house-presence/overview/${year}/${month}`);
+  },
+};
+
 // Notification API calls - NEW PUSH NOTIFICATION SYSTEM
 export const notificationAPI = {
   // Send notifications when activity is created

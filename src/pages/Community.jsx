@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { responsibilityAPI } from '../services/api';
 import MobileNav from '../components/MobileNav';
+import CoreHeader from '../components/CoreHeader';
 
 const Community = () => {
   const [activeTab, setActiveTab] = useState('responsibilities');
@@ -154,16 +155,7 @@ const Community = () => {
       <MobileNav user={user} onLogout={handleLogout} />
       
       {/* Desktop Header */}
-      <div className="dashboard-header desktop-only">
-        <div className="user-info">{getDisplayName(user)}</div>
-        <div className="nav-links">
-          <Link to="/dashboard" className="nav-link">Dashboard</Link>
-          <Link to="/activities" className="nav-link">Activities</Link>
-          <Link to="/manage-activities" className="nav-link">Manage Activities</Link>
-          <Link to="/community" className="nav-link active">Community</Link>
-          <a href="#" onClick={handleLogout} className="nav-link">Exit</a>
-        </div>
-      </div>
+      <CoreHeader user={user} onLogout={handleLogout} activeTab="community" />
       
       {/* Tab Navigation */}
       <div className="tab-navigation">

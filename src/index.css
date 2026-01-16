@@ -4740,3 +4740,84 @@ button:focus-visible {
     grid-template-columns: repeat(4, 1fr);
   }
 }
+
+/* Calendar Styles for Presence Pages */
+.calendar-grid {
+  width: 100%;
+  max-width: 100%;
+}
+
+.calendar-header {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 1px;
+  margin-bottom: 8px;
+}
+
+.calendar-header > div {
+  text-align: center;
+  font-weight: 600;
+  padding: 8px 4px;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.calendar-body {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 1px;
+  background-color: var(--border);
+}
+
+.calendar-day {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: white;
+  font-size: 0.875rem;
+  font-weight: 500;
+  position: relative;
+  min-height: 40px;
+}
+
+.calendar-day.empty {
+  background-color: var(--background);
+}
+
+.calendar-day.present {
+  background-color: #22c55e;
+  color: white;
+}
+
+.calendar-day.saturday {
+  background-color: #3b82f6;
+  color: white;
+}
+
+.calendar-day.present.saturday {
+  background-color: #059669;
+  color: white;
+}
+
+.calendar-day.today {
+  border: 2px solid #f59e0b;
+  font-weight: 700;
+}
+
+.calendar-day.today.present {
+  border-color: #fbbf24;
+}
+
+/* Mobile responsive calendar */
+@media (max-width: 640px) {
+  .calendar-day {
+    min-height: 35px;
+    font-size: 0.75rem;
+  }
+  
+  .calendar-header > div {
+    font-size: 0.75rem;
+    padding: 6px 2px;
+  }
+}

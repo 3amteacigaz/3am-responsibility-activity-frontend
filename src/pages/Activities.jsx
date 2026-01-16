@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { activityAPI, presenceAPI, notificationAPI } from '../services/api';
 import pushNotificationService from '../services/pushNotifications';
 import MobileNav from '../components/MobileNav';
+import CoreHeader from '../components/CoreHeader';
 
 const Activities = () => {
   const [activities, setActivities] = useState([]);
@@ -360,26 +361,18 @@ const Activities = () => {
       <MobileNav user={user} onLogout={handleLogout} />
       
       {/* Desktop Header */}
-      <div className="dashboard-header desktop-only">
-        <div className="user-info">{getDisplayName(user)}</div>
-        <div className="nav-links">
-          {user?.userType === 'core' ? (
-            <>
-              <Link to="/dashboard" className="nav-link">Dashboard</Link>
-              <Link to="/activities" className="nav-link active">Activities</Link>
-              <Link to="/manage-activities" className="nav-link">Manage Activities</Link>
-              <Link to="/community" className="nav-link">Community</Link>
-              <a href="#" onClick={handleLogout} className="nav-link">Exit</a>
-            </>
-          ) : (
-            <>
-              <Link to="/activities" className="nav-link active">Activities</Link>
-              <Link to="/presence" className="nav-link">Presence</Link>
-              <a href="#" onClick={handleLogout} className="nav-link">Exit</a>
-            </>
-          )}
+      {user?.userType === 'core' ? (
+        <CoreHeader user={user} onLogout={handleLogout} activeTab="activities" />
+      ) : (
+        <div className="dashboard-header desktop-only">
+          <div className="user-info">{getDisplayName(user)}</div>
+          <div className="nav-links">
+            <Link to="/activities" className="nav-link active">Activities</Link>
+            <Link to="/presence" className="nav-link">Presence</Link>
+            <a href="#" onClick={handleLogout} className="nav-link">Exit</a>
+          </div>
         </div>
-      </div>
+      )}
 
       <main>
         <div className="activities-section">

@@ -13,6 +13,7 @@ import Community from './pages/Community';
 import Home from './pages/Home';
 import ManageActivities from './pages/ManageActivities';
 import Activities from './pages/Activities';
+import InHousePresence from './pages/InHousePresence.jsx';
 import Presence from './pages/Presence';
 
 // Get the base path for GitHub Pages (not needed with HashRouter)
@@ -74,6 +75,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <Community />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/in-house-presence" 
+              element={
+                <ProtectedRoute>
+                  <InHousePresence />
                 </ProtectedRoute>
               } 
             />

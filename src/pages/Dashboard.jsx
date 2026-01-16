@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { responsibilityAPI } from '../services/api';
 import pushNotificationService from '../services/pushNotifications';
 import MobileNav from '../components/MobileNav';
+import CoreHeader from '../components/CoreHeader';
 
 const Dashboard = () => {
   const [responsibilities, setResponsibilities] = useState([]);
@@ -273,16 +274,7 @@ const Dashboard = () => {
       <MobileNav user={user} onLogout={handleLogout} />
       
       {/* Desktop Header */}
-      <div className="dashboard-header desktop-only">
-        <div className="user-info">{getDisplayName(user)}</div>
-        <div className="nav-links">
-          <Link to="/dashboard" className="nav-link active">Dashboard</Link>
-          <Link to="/activities" className="nav-link">Activities</Link>
-          <Link to="/manage-activities" className="nav-link">Manage Activities</Link>
-          <Link to="/community" className="nav-link">Community</Link>
-          <a href="#" onClick={handleLogout} className="nav-link">Exit</a>
-        </div>
-      </div>
+      <CoreHeader user={user} onLogout={handleLogout} activeTab="dashboard" />
       
       <main>
         <div className="dashboard-content">
