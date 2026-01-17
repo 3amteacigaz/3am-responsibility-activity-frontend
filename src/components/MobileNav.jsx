@@ -110,14 +110,6 @@ const MobileNav = ({ user, onLogout }) => {
               ) : (
                 <>
                   <Link 
-                    to="/in-house/dashboard" 
-                    className={`mobile-menu-item ${isActive('/in-house/dashboard') ? 'active' : ''}`}
-                    onClick={closeMenu}
-                  >
-                    <i className="fas fa-tachometer-alt"></i>
-                    <span>Dashboard</span>
-                  </Link>
-                  <Link 
                     to="/in-house/activities" 
                     className={`mobile-menu-item ${isActive('/in-house/activities') ? 'active' : ''}`}
                     onClick={closeMenu}
