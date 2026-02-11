@@ -12,9 +12,14 @@ const Dashboard = () => {
   const [datesList, setDatesList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
+  const [uploadFile, setUploadFile] = useState(null);
+  const [uploadLoading, setUploadLoading] = useState(false);
+  const [uploadMessage, setUploadMessage] = useState('');
+  const [uploadResults, setUploadResults] = useState(null);
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split('T')[0],
-    time: '',
+    startTime: '',
+    endTime: '',
     title: '',
     description: ''
   });
@@ -178,7 +183,8 @@ const Dashboard = () => {
       // Reset form
       setFormData({
         date: new Date().toISOString().split('T')[0],
-        time: '',
+        startTime: '',
+        endTime: '',
         title: '',
         description: ''
       });
@@ -194,17 +200,67 @@ const Dashboard = () => {
     }
   };
 
-  const handleDateSelect = (date) => {
-    setSelectedDate(date);
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setUploadFile(file);
+      setUploadMessage('');
+      setUploadResults(null);
+    }
   };
 
-  const toggleResponsibilityCompletion = async (responsibilityId, completed) => {
-    try {
-      await responsibilityAPI.updateResponsibility(responsibilityId, { completed });
-      await loadResponsibilities();
-    } catch (error) {
-      console.error('Error updating responsibility:', error);
+  const handleBulkUpload = async (e) => {
+    e.preventDefault();
+    
+    if (!uploadFile) {
+      setUploadMessage('Please select a file to upload');
+      return;
     }
+
+    try {
+      setUploadLoading(true);
+      setUploadMessage('');
+      setUploadResults(null);
+
+      const formData = new FormData();
+      formData.append('file', uploadFile);
+
+      const response = await responsibilityAPI.bulkUpload(formData);
+      
+      setUploadMessage('Upload completed successfully!');
+      setUploadResults(response.data.results);
+      setUploadFile(null);
+      
+      // Reset file input
+      const fileInput = document.getElementById('bulk-upload-file');
+      if (fileInput) fileInput.value = '';
+
+      // Reload responsibilities
+      await loadResponsibilities();
+
+      // Only clear success message after 5 seconds, keep errors visible
+      if (response.data.results.failed === 0) {
+        setTimeout(() => {
+          setUploadMessage('');
+          setUploadResults(null);
+        }, 5000);
+      }
+
+    } catch (error) {
+      console.error('Error uploading file:', error);
+      setUploadMessage(error.response?.data?.error || 'Error uploading file. Please check the format and try again.');
+    } finally {
+      setUploadLoading(false);
+    }
+  };
+
+  const downloadTemplate = () => {
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3003/api';
+    window.open(`${apiUrl}/responsibilities/template`, '_blank');
+  };
+
+  const handleDateSelect = (date) => {
+    setSelectedDate(date);
   };
 
   const deleteResponsibility = async (responsibilityId) => {
@@ -221,32 +277,6 @@ const Dashboard = () => {
   const handleLogout = async () => {
     await logout();
     navigate('/core-login');
-  };
-
-  const formatDateTime = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-  };
-
-  const getTimeDifference = (startDate, endDate) => {
-    const start = new Date(startDate);
-    const end = endDate ? new Date(endDate) : new Date();
-    const diffMs = end - start;
-    
-    const diffSecs = Math.floor(diffMs / 1000);
-    const diffMins = Math.floor(diffSecs / 60);
-    const diffHours = Math.floor(diffMins / 60);
-    const diffDays = Math.floor(diffHours / 24);
-    
-    if (diffDays > 0) {
-      return `${diffDays}d ${diffHours % 24}h`;
-    } else if (diffHours > 0) {
-      return `${diffHours}h ${diffMins % 60}m`;
-    } else if (diffMins > 0) {
-      return `${diffMins}m ${diffSecs % 60}s`;
-    } else {
-      return `${diffSecs}s`;
-    }
   };
 
   const selectedDateResponsibilities = selectedDate ? getResponsibilitiesForDate(selectedDate) : [];
@@ -292,26 +322,41 @@ const Dashboard = () => {
             )}
             
             <form onSubmit={handleSubmit}>
+              <div className="form-group">
+                <label htmlFor="date">Date</label>
+                <input
+                  type="date"
+                  id="date"
+                  name="date"
+                  value={formData.date}
+                  onChange={handleInputChange}
+                  required
+                />
+                <small style={{ display: 'block', marginTop: '4px', color: 'var(--text-secondary)', fontSize: '12px' }}>
+                  You can select any date, including previous dates
+                </small>
+              </div>
+              
               <div className="form-row">
                 <div className="form-group">
-                  <label htmlFor="date">Date</label>
+                  <label htmlFor="startTime">Start Time</label>
                   <input
-                    type="date"
-                    id="date"
-                    name="date"
-                    value={formData.date}
+                    type="time"
+                    id="startTime"
+                    name="startTime"
+                    value={formData.startTime}
                     onChange={handleInputChange}
                     required
                   />
                 </div>
                 
                 <div className="form-group">
-                  <label htmlFor="time">Time</label>
+                  <label htmlFor="endTime">End Time</label>
                   <input
                     type="time"
-                    id="time"
-                    name="time"
-                    value={formData.time}
+                    id="endTime"
+                    name="endTime"
+                    value={formData.endTime}
                     onChange={handleInputChange}
                     required
                   />
@@ -344,6 +389,223 @@ const Dashboard = () => {
               
               <button type="submit" className="btn-full">Add Responsibility</button>
             </form>
+
+            {/* Bulk Upload Section */}
+            <div style={{ marginTop: '40px', paddingTop: '40px', borderTop: '1px solid var(--border)' }}>
+              <h3 style={{ fontSize: '16px', fontWeight: '500', marginBottom: '16px', color: 'var(--text-primary)' }}>
+                <i className="fas fa-file-upload" style={{ marginRight: '8px' }}></i>
+                Bulk Upload from Excel/CSV
+              </h3>
+
+              {/* Instructions Box */}
+              <div style={{
+                padding: '16px',
+                background: 'var(--secondary)',
+                border: '1px solid var(--border)',
+                marginBottom: '16px',
+                fontSize: '13px'
+              }}>
+                <div style={{ marginBottom: '12px', fontWeight: '600', color: 'var(--text-primary)' }}>
+                  <i className="fas fa-info-circle" style={{ marginRight: '6px' }}></i>
+                  Upload Instructions:
+                </div>
+                <div style={{ marginBottom: '8px' }}>
+                  <strong>Accepted File Types:</strong>
+                  <div style={{ marginLeft: '16px', marginTop: '4px' }}>
+                    • Excel files (.xlsx, .xls)<br/>
+                    • CSV files (.csv)
+                  </div>
+                </div>
+                <div style={{ marginBottom: '8px' }}>
+                  <strong>Date Format (Required):</strong>
+                  <div style={{ marginLeft: '16px', marginTop: '4px', color: '#3b82f6' }}>
+                    • MM/DD/YYYY (e.g., 02/11/2026, 12/25/2026)<br/>
+                    • M/D/YYYY (e.g., 2/11/2026, 3/5/2026)<br/>
+                    • MM-DD-YYYY (e.g., 02-11-2026, 12-25-2026)<br/>
+                    • M-D-YYYY (e.g., 2-11-2026, 3-5-2026)
+                  </div>
+                  <div style={{ marginLeft: '16px', marginTop: '4px', fontSize: '12px', color: 'var(--text-secondary)' }}>
+                    Note: Excel date cells are automatically converted
+                  </div>
+                </div>
+                <div style={{ marginBottom: '8px' }}>
+                  <strong>Time Format:</strong>
+                  <div style={{ marginLeft: '16px', marginTop: '4px' }}>
+                    • 24-hour: 09:30, 9:30, 14:45<br/>
+                    • With seconds: 09:30:00, 9:30:45<br/>
+                    • 12-hour with AM/PM: 9:30 AM, 2:30 PM, 9:20:00 AM
+                  </div>
+                  <div style={{ marginLeft: '16px', marginTop: '4px', fontSize: '12px', color: 'var(--text-secondary)' }}>
+                    Note: Excel time cells are automatically converted. All formats accepted.
+                  </div>
+                </div>
+                <div>
+                  <strong>Required Columns:</strong>
+                  <div style={{ marginLeft: '16px', marginTop: '4px' }}>
+                    • Title, Date, Start Time, End Time<br/>
+                    • Description (optional)
+                  </div>
+                </div>
+              </div>
+              
+              {uploadMessage && (
+                <div className={uploadMessage.includes('success') ? 'success' : 'error'} style={{ 
+                  marginBottom: '16px',
+                  position: 'relative',
+                  paddingRight: '40px'
+                }}>
+                  {uploadMessage}
+                  <button
+                    onClick={() => setUploadMessage('')}
+                    style={{
+                      position: 'absolute',
+                      right: '8px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      background: 'transparent',
+                      border: 'none',
+                      color: 'inherit',
+                      cursor: 'pointer',
+                      fontSize: '18px',
+                      padding: '4px 8px'
+                    }}
+                    title="Close"
+                  >
+                    ×
+                  </button>
+                </div>
+              )}
+
+              {uploadResults && (
+                <div style={{ 
+                  padding: '16px', 
+                  background: 'var(--secondary)', 
+                  border: '1px solid var(--border)',
+                  marginBottom: '16px',
+                  fontSize: '13px',
+                  position: 'relative'
+                }}>
+                  <button
+                    onClick={() => setUploadResults(null)}
+                    style={{
+                      position: 'absolute',
+                      right: '8px',
+                      top: '8px',
+                      background: 'var(--primary)',
+                      color: 'var(--secondary)',
+                      border: 'none',
+                      cursor: 'pointer',
+                      fontSize: '18px',
+                      padding: '4px 12px',
+                      fontWeight: 'bold'
+                    }}
+                    title="Close"
+                  >
+                    ×
+                  </button>
+                  <div style={{ marginBottom: '12px' }}>
+                    <strong style={{ fontSize: '14px' }}>Upload Results:</strong>
+                  </div>
+                  <div style={{ marginBottom: '4px' }}>✅ Success: {uploadResults.success} / {uploadResults.total}</div>
+                  <div style={{ marginBottom: '8px' }}>❌ Failed: {uploadResults.failed} / {uploadResults.total}</div>
+                  {uploadResults.errors && uploadResults.errors.length > 0 && (
+                    <div style={{ 
+                      marginTop: '12px',
+                      paddingTop: '12px',
+                      borderTop: '1px solid var(--border)',
+                      maxHeight: '300px',
+                      overflowY: 'auto'
+                    }}>
+                      <strong style={{ display: 'block', marginBottom: '8px', color: '#ef4444' }}>
+                        Errors ({uploadResults.errors.length}):
+                      </strong>
+                      {uploadResults.errors.map((err, idx) => (
+                        <div key={idx} style={{ 
+                          fontSize: '12px', 
+                          color: '#ef4444', 
+                          marginBottom: '6px',
+                          padding: '6px 8px',
+                          background: 'rgba(239, 68, 68, 0.1)',
+                          border: '1px solid rgba(239, 68, 68, 0.2)'
+                        }}>
+                          <strong>Row {err.row}:</strong> {err.error}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div style={{ marginBottom: '16px' }}>
+                <button
+                  type="button"
+                  onClick={downloadTemplate}
+                  style={{
+                    background: 'var(--secondary)',
+                    border: '1px solid var(--border)',
+                    color: 'var(--text-primary)',
+                    padding: '8px 16px',
+                    fontSize: '13px',
+                    cursor: 'pointer',
+                    width: '100%',
+                    marginBottom: '12px'
+                  }}
+                >
+                  <i className="fas fa-download" style={{ marginRight: '8px' }}></i>
+                  Download Sample Template (CSV)
+                </button>
+                <small style={{ display: 'block', color: 'var(--text-secondary)', fontSize: '12px' }}>
+                  Download the sample template with MM/DD/YYYY date format, fill it with your data, and upload below
+                </small>
+              </div>
+
+              <form onSubmit={handleBulkUpload}>
+                <div className="form-group">
+                  <label htmlFor="bulk-upload-file">Select Excel/CSV File</label>
+                  <input
+                    type="file"
+                    id="bulk-upload-file"
+                    accept=".xlsx,.xls,.csv"
+                    onChange={handleFileChange}
+                    disabled={uploadLoading}
+                    style={{
+                      width: '100%',
+                      padding: '8px',
+                      border: '1px solid var(--border)',
+                      background: 'var(--secondary)',
+                      cursor: 'pointer'
+                    }}
+                  />
+                  {uploadFile && (
+                    <small style={{ display: 'block', marginTop: '4px', color: 'var(--text-primary)', fontSize: '12px' }}>
+                      Selected: {uploadFile.name}
+                    </small>
+                  )}
+                </div>
+
+                <button 
+                  type="submit" 
+                  className="btn-full"
+                  disabled={uploadLoading || !uploadFile}
+                  style={{
+                    opacity: (uploadLoading || !uploadFile) ? 0.6 : 1,
+                    cursor: (uploadLoading || !uploadFile) ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  {uploadLoading ? (
+                    <>
+                      <i className="fas fa-spinner fa-spin" style={{ marginRight: '8px' }}></i>
+                      Uploading...
+                    </>
+                  ) : (
+                    <>
+                      <i className="fas fa-upload" style={{ marginRight: '8px' }}></i>
+                      Upload Responsibilities
+                    </>
+                  )}
+                </button>
+              </form>
+            </div>
           </div>
           
           {/* Right Side - Your Responsibilities */}
@@ -403,35 +665,46 @@ const Dashboard = () => {
                     </div>
                   ) : (
                     selectedDateResponsibilities.map(responsibility => {
-                      const createdTime = formatDateTime(responsibility.createdAt);
-                      const completedTime = responsibility.completedAt ? formatDateTime(responsibility.completedAt) : null;
-                      const duration = responsibility.completed && responsibility.completedAt ? 
-                        getTimeDifference(responsibility.createdAt, responsibility.completedAt) : 
-                        getTimeDifference(responsibility.createdAt);
+                      // Calculate duration from start and end time
+                      const calculateDuration = (startTime, endTime) => {
+                        if (!startTime || !endTime) return 'N/A';
+                        
+                        const [startHour, startMin] = startTime.split(':').map(Number);
+                        const [endHour, endMin] = endTime.split(':').map(Number);
+                        
+                        const startMinutes = startHour * 60 + startMin;
+                        const endMinutes = endHour * 60 + endMin;
+                        
+                        let diffMinutes = endMinutes - startMinutes;
+                        if (diffMinutes < 0) diffMinutes += 24 * 60; // Handle overnight
+                        
+                        const hours = Math.floor(diffMinutes / 60);
+                        const minutes = diffMinutes % 60;
+                        
+                        if (hours > 0 && minutes > 0) {
+                          return `${hours}h ${minutes}m`;
+                        } else if (hours > 0) {
+                          return `${hours}h`;
+                        } else {
+                          return `${minutes}m`;
+                        }
+                      };
+
+                      const duration = calculateDuration(responsibility.startTime || responsibility.time, responsibility.endTime);
 
                       return (
-                        <div key={responsibility._id} className={`task-item ${responsibility.completed ? 'completed' : ''}`}>
+                        <div key={responsibility._id} className="task-item">
                           <div className="task-title">{responsibility.title}</div>
                           <div className="task-meta">
-                            {new Date(responsibility.date).toLocaleDateString()} at {responsibility.time}
+                            {new Date(responsibility.date).toLocaleDateString()} • {responsibility.startTime || responsibility.time} - {responsibility.endTime || 'N/A'}
                           </div>
                           {responsibility.description && (
                             <div className="task-description">{responsibility.description}</div>
                           )}
                           <div className="task-timing">
-                            Started: {createdTime}
-                            {completedTime && <><br />Completed: {completedTime}</>}
-                            <br />Duration: {duration}
+                            Duration: {duration}
                           </div>
                           <div className="task-actions">
-                            {!responsibility.completed && (
-                              <button 
-                                className="task-btn complete" 
-                                onClick={() => toggleResponsibilityCompletion(responsibility._id, true)}
-                              >
-                                <i className="fas fa-check"></i> Done
-                              </button>
-                            )}
                             <button 
                               className="task-btn delete" 
                               onClick={() => deleteResponsibility(responsibility._id)}

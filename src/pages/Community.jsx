@@ -11,6 +11,8 @@ const Community = () => {
   const [selectedDate, setSelectedDate] = useState(null);
   const [datesList, setDatesList] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedUser, setSelectedUser] = useState('all'); // Filter by user
+  const [usersList, setUsersList] = useState([]); // List of unique users
 
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -32,6 +34,13 @@ const Community = () => {
     }
   }, [activeTab]);
 
+  // Regenerate dates list when user filter changes
+  useEffect(() => {
+    if (allResponsibilities.length > 0) {
+      generateDatesList(allResponsibilities);
+    }
+  }, [selectedUser]);
+
   const loadAllResponsibilities = async () => {
     try {
       setLoading(true);
@@ -39,11 +48,32 @@ const Community = () => {
       const responsibilities = response.data.tasks || [];
       setAllResponsibilities(responsibilities);
       generateDatesList(responsibilities);
+      generateUsersList(responsibilities);
     } catch (error) {
       console.error('Error loading responsibilities from backend:', error);
     } finally {
       setLoading(false);
     }
+  };
+
+  const generateUsersList = (responsibilities) => {
+    // Get unique users
+    const usersMap = new Map();
+    responsibilities.forEach(responsibility => {
+      const userName = responsibility.name || responsibility.username || 'Unknown';
+      const userId = responsibility.userId;
+      if (!usersMap.has(userId)) {
+        usersMap.set(userId, {
+          userId,
+          name: userName,
+          count: 0
+        });
+      }
+      usersMap.get(userId).count++;
+    });
+
+    const users = Array.from(usersMap.values()).sort((a, b) => a.name.localeCompare(b.name));
+    setUsersList(users);
   };
 
   const generateDatesList = (responsibilities) => {
@@ -52,9 +82,15 @@ const Community = () => {
       return;
     }
 
+    // Filter responsibilities by selected user first
+    let filteredResponsibilities = responsibilities;
+    if (selectedUser !== 'all') {
+      filteredResponsibilities = responsibilities.filter(r => r.userId === selectedUser);
+    }
+
     // Group responsibilities by date
     const responsibilitiesByDate = {};
-    responsibilities.forEach(responsibility => {
+    filteredResponsibilities.forEach(responsibility => {
       const dateKey = responsibility.date;
       if (!responsibilitiesByDate[dateKey]) {
         responsibilitiesByDate[dateKey] = [];
@@ -74,8 +110,10 @@ const Community = () => {
     setDatesList(datesWithCounts);
 
     // Auto-select the first (most recent) date
-    if (sortedDates.length > 0 && !selectedDate) {
+    if (sortedDates.length > 0) {
       setSelectedDate(sortedDates[0]);
+    } else {
+      setSelectedDate(null);
     }
   };
 
@@ -109,42 +147,28 @@ const Community = () => {
   };
 
   const getResponsibilitiesForDate = (date) => {
-    return allResponsibilities.filter(responsibility => responsibility.date === date);
+    let filtered = allResponsibilities.filter(responsibility => responsibility.date === date);
+    
+    // Apply user filter
+    if (selectedUser !== 'all') {
+      filtered = filtered.filter(responsibility => responsibility.userId === selectedUser);
+    }
+    
+    return filtered;
   };
 
   const handleDateSelect = (date) => {
     setSelectedDate(date);
   };
 
+  const handleUserSelect = (userId) => {
+    setSelectedUser(userId);
+    // The useEffect will automatically regenerate dates list
+  };
+
   const handleLogout = async () => {
     await logout();
     navigate('/core-login');
-  };
-
-  const formatDateTime = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-  };
-
-  const getTimeDifference = (startDate, endDate) => {
-    const start = new Date(startDate);
-    const end = endDate ? new Date(endDate) : new Date();
-    const diffMs = end - start;
-    
-    const diffSecs = Math.floor(diffMs / 1000);
-    const diffMins = Math.floor(diffSecs / 60);
-    const diffHours = Math.floor(diffMins / 60);
-    const diffDays = Math.floor(diffHours / 24);
-    
-    if (diffDays > 0) {
-      return `${diffDays}d ${diffHours % 24}h`;
-    } else if (diffHours > 0) {
-      return `${diffHours}h ${diffMins % 60}m`;
-    } else if (diffMins > 0) {
-      return `${diffMins}m ${diffSecs % 60}s`;
-    } else {
-      return `${diffSecs}s`;
-    }
   };
 
   const selectedDateResponsibilities = selectedDate ? getResponsibilitiesForDate(selectedDate) : [];
@@ -185,6 +209,47 @@ const Community = () => {
                 Community Responsibilities
               </h2>
               
+              {/* User Filter - Moved to top */}
+              {usersList.length > 0 && (
+                <div style={{ 
+                  marginBottom: '20px', 
+                  padding: '16px',
+                  background: 'var(--secondary)',
+                  border: '1px solid var(--border)'
+                }}>
+                  <label htmlFor="user-filter" style={{ 
+                    fontSize: '14px', 
+                    fontWeight: '500', 
+                    marginRight: '12px',
+                    color: 'var(--text-primary)'
+                  }}>
+                    <i className="fas fa-user" style={{ marginRight: '8px' }}></i>
+                    Filter by Person:
+                  </label>
+                  <select
+                    id="user-filter"
+                    value={selectedUser}
+                    onChange={(e) => handleUserSelect(e.target.value)}
+                    style={{
+                      padding: '8px 12px',
+                      border: '1px solid var(--border)',
+                      background: 'var(--secondary)',
+                      color: 'var(--text-primary)',
+                      fontSize: '14px',
+                      cursor: 'pointer',
+                      minWidth: '200px'
+                    }}
+                  >
+                    <option value="all">All People ({allResponsibilities.length} total)</option>
+                    {usersList.map(user => (
+                      <option key={user.userId} value={user.userId}>
+                        {user.name} ({user.count} responsibilities)
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              
               <div className="tasks-layout">
                 {/* Date List */}
                 <div className="date-list">
@@ -224,6 +289,7 @@ const Community = () => {
                       {selectedDate ? `(${selectedDateResponsibilities.length})` : ''}
                     </span>
                   </div>
+                  
                   <div className="tasks-container">
                     {!selectedDate ? (
                       <div className="empty-state">
@@ -233,18 +299,39 @@ const Community = () => {
                     ) : selectedDateResponsibilities.length === 0 ? (
                       <div className="empty-state">
                         <i className="fas fa-clipboard-list"></i>
-                        <p>No responsibilities found for this date</p>
+                        <p>No responsibilities found {selectedUser !== 'all' ? 'for this person' : 'for this date'}</p>
                       </div>
                     ) : (
                       selectedDateResponsibilities.map(responsibility => {
-                        const createdTime = formatDateTime(responsibility.createdAt);
-                        const completedTime = responsibility.completedAt ? formatDateTime(responsibility.completedAt) : null;
-                        const duration = responsibility.completed && responsibility.completedAt ? 
-                          getTimeDifference(responsibility.createdAt, responsibility.completedAt) : 
-                          getTimeDifference(responsibility.createdAt);
+                        // Calculate duration from start and end time
+                        const calculateDuration = (startTime, endTime) => {
+                          if (!startTime || !endTime) return 'N/A';
+                          
+                          const [startHour, startMin] = startTime.split(':').map(Number);
+                          const [endHour, endMin] = endTime.split(':').map(Number);
+                          
+                          const startMinutes = startHour * 60 + startMin;
+                          const endMinutes = endHour * 60 + endMin;
+                          
+                          let diffMinutes = endMinutes - startMinutes;
+                          if (diffMinutes < 0) diffMinutes += 24 * 60; // Handle overnight
+                          
+                          const hours = Math.floor(diffMinutes / 60);
+                          const minutes = diffMinutes % 60;
+                          
+                          if (hours > 0 && minutes > 0) {
+                            return `${hours}h ${minutes}m`;
+                          } else if (hours > 0) {
+                            return `${hours}h`;
+                          } else {
+                            return `${minutes}m`;
+                          }
+                        };
+
+                        const duration = calculateDuration(responsibility.startTime || responsibility.time, responsibility.endTime);
 
                         return (
-                          <div key={responsibility._id} className={`task-item ${responsibility.completed ? 'completed' : ''}`}>
+                          <div key={responsibility._id} className="task-item">
                             <div style={{ 
                               display: 'flex', 
                               justifyContent: 'space-between', 
@@ -252,18 +339,25 @@ const Community = () => {
                               marginBottom: '8px' 
                             }}>
                               <div className="task-title">{responsibility.title}</div>
-                              <div className="user-info">{responsibility.name || responsibility.username}</div>
+                              <div className="user-badge" style={{
+                                background: 'var(--primary)',
+                                color: 'var(--secondary)',
+                                padding: '4px 12px',
+                                fontSize: '12px',
+                                fontWeight: '600',
+                                borderRadius: '0'
+                              }}>
+                                {responsibility.name || responsibility.username}
+                              </div>
                             </div>
                             <div className="task-meta">
-                              {new Date(responsibility.date).toLocaleDateString()} at {responsibility.time}
+                              {new Date(responsibility.date).toLocaleDateString()} • {responsibility.startTime || responsibility.time} - {responsibility.endTime || 'N/A'}
                             </div>
                             {responsibility.description && (
                               <div className="task-description">{responsibility.description}</div>
                             )}
                             <div className="task-timing">
-                              Started: {createdTime}
-                              {completedTime && <><br />Completed: {completedTime}</>}
-                              <br />Duration: {duration}
+                              Duration: {duration}
                             </div>
                           </div>
                         );

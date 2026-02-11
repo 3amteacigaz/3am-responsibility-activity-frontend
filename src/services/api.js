@@ -82,6 +82,16 @@ export const responsibilityAPI = {
   getResponsibilityStats: () => api.get('/responsibilities/stats'),
   updateResponsibility: (id, data) => api.put(`/responsibilities/${id}`, data),
   deleteResponsibility: (id) => api.delete(`/responsibilities/${id}`),
+  bulkUpload: (formData) => {
+    return axios.create({
+      baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
+      withCredentials: true,
+      headers: {
+        'Content-Type': 'multipart/form-data',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      },
+    }).post('/responsibilities/bulk-upload', formData);
+  },
 };
 
 // Activity API calls - NEW BACKEND API
