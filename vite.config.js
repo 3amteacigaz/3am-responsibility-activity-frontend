@@ -4,8 +4,8 @@ import react from '@vitejs/plugin-react'
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
-  // Use base path only for production (GitHub Pages), not for development
-  base: process.env.NODE_ENV === 'production' ? '/3am-responsibility-activity-frontend/' : '/',
+  // Use root path for custom domain (3amcollectivemovement.com)
+  base: '/',
   server: {
     port: 3002,
     host: true,
